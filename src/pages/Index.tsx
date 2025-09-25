@@ -1,21 +1,12 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Navigation } from "@/components/shared/Navigation";
 import { Shield, Zap, Coins, ArrowRight, Lock, TrendingUp } from "lucide-react";
 import heroImage from "@/assets/hero-vault.jpg";
 
 const Index = () => {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-
-  const handleConnectWallet = () => {
-    // Mock wallet connection
-    setIsWalletConnected(!isWalletConnected);
-  };
-
   const badges = [
     { icon: Shield, label: "Autonomous ASC", color: "bg-primary" },
     { icon: Zap, label: "DeWeb Frontend", color: "bg-secondary" },
@@ -41,12 +32,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation
-        onConnectWallet={handleConnectWallet}
-        isWalletConnected={isWalletConnected}
-      />
-
+    <>
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 hero-gradient" />
@@ -172,7 +158,7 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
-    </div>
+    </>
   );
 };
 

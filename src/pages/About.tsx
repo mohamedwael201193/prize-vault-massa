@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { Navigation } from "@/components/shared/Navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,14 +13,8 @@ import {
   Target,
   ArrowRight
 } from "lucide-react";
-import { useState } from "react";
 
 const About = () => {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-
-  const handleConnectWallet = () => {
-    setIsWalletConnected(!isWalletConnected);
-  };
 
   const risks = [
     {
@@ -72,10 +65,6 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation
-        onConnectWallet={handleConnectWallet}
-        isWalletConnected={isWalletConnected}
-      />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -313,7 +302,7 @@ const About = () => {
           </Card>
         </motion.div>
       </div>
-    </div>
+    </>
   );
 };
 

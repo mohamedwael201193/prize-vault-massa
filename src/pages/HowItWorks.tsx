@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { Navigation } from "@/components/shared/Navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,14 +13,8 @@ import {
   ArrowRight,
   CheckCircle
 } from "lucide-react";
-import { useState } from "react";
 
 const HowItWorks = () => {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-
-  const handleConnectWallet = () => {
-    setIsWalletConnected(!isWalletConnected);
-  };
 
   const steps = [
     {
@@ -76,10 +69,6 @@ const HowItWorks = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation
-        onConnectWallet={handleConnectWallet}
-        isWalletConnected={isWalletConnected}
-      />
 
       {/* Hero Section */}
       <section className="py-20 border-b border-border/50">
@@ -227,7 +216,7 @@ const HowItWorks = () => {
           </motion.div>
         </div>
       </section>
-    </div>
+    </>
   );
 };
 

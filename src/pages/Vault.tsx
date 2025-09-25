@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Navigation } from "@/components/shared/Navigation";
 import { DepositCard } from "@/components/vault/DepositCard";
 import { WithdrawCard } from "@/components/vault/WithdrawCard";
 import { StatsBar } from "@/components/vault/StatsBar";
@@ -9,14 +8,8 @@ import { OddsMeter } from "@/components/vault/OddsMeter";
 import { WinnersFeed } from "@/components/vault/WinnersFeed";
 
 const Vault = () => {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress] = useState("AU12XYZ...789ABC");
   const [userBalance, setUserBalance] = useState(0);
   const [userTickets, setUserTickets] = useState(0);
-
-  const handleConnectWallet = () => {
-    setIsWalletConnected(!isWalletConnected);
-  };
 
   const handleDeposit = (amount: number) => {
     setUserBalance(prev => prev + amount);
@@ -46,13 +39,7 @@ const Vault = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation
-        onConnectWallet={handleConnectWallet}
-        isWalletConnected={isWalletConnected}
-        walletAddress={walletAddress}
-      />
-
+    <>
       <div className="container mx-auto px-4 py-8">
         {/* Stats Bar */}
         <motion.div
@@ -74,7 +61,7 @@ const Vault = () => {
             >
               <DepositCard
                 onDeposit={handleDeposit}
-                isWalletConnected={isWalletConnected}
+                isWalletConnected={true} // Mock wallet connected
                 userBalance={100} // Mock available balance
               />
             </motion.div>
@@ -87,7 +74,7 @@ const Vault = () => {
               <WithdrawCard
                 onWithdraw={handleWithdraw}
                 userBalance={userBalance}
-                isWalletConnected={isWalletConnected}
+                isWalletConnected={true} // Mock wallet connected
               />
             </motion.div>
 
@@ -114,7 +101,7 @@ const Vault = () => {
           </motion.div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
