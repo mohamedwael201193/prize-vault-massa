@@ -2,41 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* AutoPrize Vault Design System - Dark Mode DeFi Interface */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base colors - Dark theme default */
+    --background: 215 67% 9%;           /* Deep navy #0B1220 */
+    --foreground: 213 19% 80%;          /* Slate text #C9D1D9 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card system */
+    --card: 220 30% 11%;                /* Slightly lighter navy */
+    --card-foreground: 213 19% 80%;     /* Slate text */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Interactive elements */
+    --popover: 215 67% 9%;
+    --popover-foreground: 213 19% 80%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary branding - Electric violet */
+    --primary: 249 100% 66%;            /* Electric violet #7C4DFF */
+    --primary-foreground: 0 0% 100%;    /* White text on violet */
+    --primary-glow: 249 100% 80%;       /* Lighter violet for glows */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Neon mint accent */
+    --secondary: 169 90% 68%;           /* Neon mint #60F7D5 */
+    --secondary-foreground: 215 67% 9%; /* Dark text on mint */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted elements */
+    --muted: 220 20% 15%;               /* Muted dark */
+    --muted-foreground: 213 15% 60%;    /* Muted text */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent colors */
+    --accent: 169 90% 68%;              /* Neon mint */
+    --accent-foreground: 215 67% 9%;    /* Dark on mint */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Success and error states */
+    --success: 140 69% 50%;             /* Success green #2BD576 */
+    --success-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --destructive: 0 100% 68%;          /* Danger red #FF5C5C */
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /* Form elements */
+    --border: 220 20% 20%;              /* Subtle borders */
+    --input: 220 20% 15%;               /* Input backgrounds */
+    --ring: 249 100% 66%;               /* Focus rings use primary */
+
+    /* Gradients for visual appeal */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--background)), hsl(220 30% 11%));
+    --gradient-accent: linear-gradient(90deg, hsl(var(--secondary)), hsl(var(--primary)));
+    
+    /* Glows and shadows */
+    --glow-primary: 0 0 40px hsl(var(--primary) / 0.3);
+    --glow-secondary: 0 0 30px hsl(var(--secondary) / 0.3);
+    --shadow-card: 0 8px 32px hsl(var(--background) / 0.8);
+
+    --radius: 12px;
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +122,58 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  /* Hero gradient background */
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+
+  .glow-secondary {
+    box-shadow: var(--glow-secondary);
+  }
+
+  /* Card shadows */
+  .card-shadow {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Animated gradient text */
+  .gradient-text {
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Pulse animation for CTAs */
+  .pulse-primary {
+    animation: pulse-primary 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-primary {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+    }
+  }
+
+  /* Parallax container */
+  .parallax-container {
+    transform-style: preserve-3d;
+  }
+
+  .parallax-element {
+    transform: translateZ(-1px) scale(2);
   }
 }
