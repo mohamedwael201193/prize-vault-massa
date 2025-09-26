@@ -68,8 +68,7 @@ const HowItWorks = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-
+    <>
       {/* Hero Section */}
       <section className="py-20 border-b border-border/50">
         <div className="container mx-auto px-4">
