@@ -59,11 +59,7 @@ const Vault = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <DepositCard
-                onDeposit={handleDeposit}
-                isWalletConnected={true} // Mock wallet connected
-                userBalance={100} // Mock available balance
-              />
+              <DepositCard onDeposit={handleDeposit} />
             </motion.div>
 
             <motion.div
@@ -74,7 +70,6 @@ const Vault = () => {
               <WithdrawCard
                 onWithdraw={handleWithdraw}
                 userBalance={userBalance}
-                isWalletConnected={true} // Mock wallet connected
               />
             </motion.div>
 

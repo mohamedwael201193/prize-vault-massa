@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,12 +14,6 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress] = useState("AU12XYZ...789ABC");
-
-  const handleConnectWallet = () => {
-    setIsWalletConnected(!isWalletConnected);
-  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -29,11 +22,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <div className="min-h-screen bg-background">
-            <Navigation
-              onConnectWallet={handleConnectWallet}
-              isWalletConnected={isWalletConnected}
-              walletAddress={walletAddress}
-            />
+            <Navigation />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/vault" element={<Vault />} />
