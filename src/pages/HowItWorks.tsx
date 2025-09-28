@@ -1,18 +1,18 @@
-import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { 
-  Wallet, 
-  TrendingUp, 
-  Trophy, 
-  Shield, 
-  Zap, 
-  Clock,
-  ArrowRight,
-  CheckCircle
+import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import {
+    ArrowRight,
+    CheckCircle,
+    Clock,
+    Shield,
+    TrendingUp,
+    Trophy,
+    Wallet,
+    Zap
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const HowItWorks = () => {
 
@@ -20,31 +20,34 @@ const HowItWorks = () => {
     {
       icon: Wallet,
       title: "Deposit MAS Tokens",
-      description: "Connect your wallet and deposit any amount of MAS tokens into the autonomous vault. Your principal is always safe and withdrawable.",
+      description: "Connect your Massa wallet and deposit any amount of MAS tokens into the decentralized vault smart contract. Your principal is cryptographically secured and always withdrawable with zero fees.",
       details: [
-        "No minimum deposit required",
-        "Instant deposits via smart contract",
-        "Funds remain in your control"
+        "No minimum deposit - start with any amount",
+        "Instant deposits via Massa smart contract",
+        "Non-custodial - you maintain full ownership",
+        "Transparent on-chain transactions"
       ]
     },
     {
       icon: TrendingUp,
       title: "Earn Yield Automatically", 
-      description: "Your deposits are automatically deployed to earn yield through Massa's DeFi protocols. All yield generation is handled by the smart contract.",
+      description: "The vault automatically generates yield through secure, algorithmic strategies optimized for the Massa ecosystem. All yield becomes the community prize pool while your principal remains untouched.",
       details: [
-        "Automated yield strategies",
-        "No manual management needed", 
-        "Transparent on-chain operations"
+        "Smart contract-managed yield generation",
+        "Massa-optimized earning strategies", 
+        "100% transparent algorithmic operations",
+        "Community governance over yield parameters"
       ]
     },
     {
       icon: Trophy,
       title: "Win Prizes Weekly",
-      description: "All earned yield becomes the prize pool. Every Friday, winners are selected via verifiable randomness. The more you deposit, the higher your odds.",
+      description: "100% of generated yield becomes the prize pool distributed to participants. Winners are selected through Massa's verifiable on-chain randomness every Friday. Your chances are proportional to your deposit size and duration.",
       details: [
-        "Weekly prize distributions",
-        "Provably fair randomness",
-        "Proportional winning chances"
+        "Weekly automated prize draws",
+        "Massa's cryptographically secure randomness",
+        "Deposit-weighted fair distribution",
+        "Community proposals can modify prize schedules"
       ]
     }
   ];
@@ -53,17 +56,17 @@ const HowItWorks = () => {
     {
       icon: Shield,
       title: "No-Loss Guarantee",
-      description: "Your principal deposit is never at risk. Only the yield becomes prizes."
+      description: "Your principal deposit is cryptographically protected and never at risk. Only generated yield becomes prizes, ensuring 100% capital preservation."
     },
     {
       icon: Zap,
-      title: "Autonomous Operation", 
-      description: "No bots, no keepers. Everything runs automatically via smart contracts."
+      title: "Fully Decentralized", 
+      description: "No centralized operators or intermediaries. Smart contracts handle everything autonomously with community governance for protocol upgrades."
     },
     {
       icon: Clock,
-      title: "Instant Withdrawals",
-      description: "Withdraw your principal anytime with no fees or penalties."
+      title: "Zero-Fee Withdrawals",
+      description: "Withdraw your full principal anytime instantly with zero fees, penalties, or lock-up periods. True liquidity preservation."
     }
   ];
 
@@ -82,10 +85,10 @@ const HowItWorks = () => {
               How <span className="gradient-text">AutoPrize Vault</span> Works
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Three simple steps to start earning prizes while keeping your savings safe.
+              A decentralized, no-loss prize vault built on Massa blockchain with community governance. Three simple steps to start earning prizes while keeping your savings completely safe.
             </p>
             <Badge className="bg-primary/10 text-primary mb-8">
-              No bots, no keepers - fully autonomous
+              Deployed on Massa BuildNet - Fully decentralized & autonomous
             </Badge>
           </motion.div>
         </div>
@@ -160,7 +163,7 @@ const HowItWorks = () => {
               Why Choose <span className="gradient-text">AutoPrize Vault</span>?
             </h2>
             <p className="text-muted-foreground text-lg">
-              Built for security, designed for simplicity.
+              Built on Massa blockchain for maximum security, designed for simplicity, governed by the community.
             </p>
           </motion.div>
 
@@ -199,7 +202,7 @@ const HowItWorks = () => {
           >
             <h2 className="text-3xl font-bold mb-4">Ready to Start Earning Prizes?</h2>
             <p className="text-muted-foreground mb-8 text-lg max-w-2xl mx-auto">
-              Join hundreds of users already earning autonomous prizes while keeping their savings safe.
+              Join the growing community earning decentralized prizes on Massa blockchain. No loss of principal, full transparency, community governance, and weekly prize distributions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="pulse-primary text-lg px-8 py-3" asChild>

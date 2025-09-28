@@ -1,56 +1,59 @@
-import { motion } from "framer-motion";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { 
-  Shield, 
-  AlertTriangle, 
-  Info, 
-  ExternalLink, 
-  Lock,
-  Zap,
-  Target,
-  ArrowRight
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import {
+    AlertTriangle,
+    ArrowRight,
+    Info,
+    Lock,
+    Shield,
+    Target,
+    Zap
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const About = () => {
 
   const risks = [
     {
       title: "Smart Contract Risk",
-      description: "While audited, smart contracts may contain bugs or vulnerabilities that could affect your funds.",
+      description: "Smart contracts are immutable code that may contain unforeseen bugs or vulnerabilities. While thoroughly tested, no code is 100% risk-free.",
       severity: "medium"
     },
     {
       title: "Massa Network Risk", 
-      description: "AutoPrize Vault depends on the Massa blockchain. Network issues could temporarily affect operations.",
+      description: "Protocol depends on Massa BuildNet blockchain infrastructure. Network congestion, forks, or technical issues could temporarily affect operations or transaction processing.",
       severity: "low"
     },
     {
-      title: "Yield Generation Risk",
-      description: "Yield comes from DeFi protocols which carry inherent risks including potential loss of yield.",
+      title: "Yield Variability Risk",
+      description: "Yield generation fluctuates based on market conditions and algorithmic performance. Prize pools may vary significantly between periods based on yield generation success.",
       severity: "medium"
     },
     {
-      title: "Randomness Assumptions",
-      description: "Prize distribution relies on pseudo-random number generation which, while secure, is not truly random.",
+      title: "Governance Risk",
+      description: "Community governance decisions could potentially modify protocol parameters in ways that affect user experience or economic incentives through democratic voting processes.",
       severity: "low"
     }
   ];
 
   const technicalDetails = [
     {
-      title: "Pseudo-Random Number Generation",
-      description: "AutoPrize Vault uses Massa's built-in randomness beacon combined with block hashes to generate verifiable random numbers for prize selection. This ensures fairness while remaining deterministic for verification."
+      title: "Massa On-Chain Randomness",
+      description: "Prize selection utilizes Massa blockchain's native cryptographically secure randomness system combined with block hashes to generate verifiable, tamper-proof random numbers. All selections are publicly auditable and mathematically fair."
     },
     {
-      title: "Yield Strategy", 
-      description: "Deposits are automatically allocated to audited DeFi protocols on Massa including lending platforms and liquidity mining. The smart contract optimizes yield while maintaining security."
+      title: "Algorithmic Yield Generation", 
+      description: "The smart contract employs automated yield generation strategies optimized for the Massa ecosystem. Yield is generated through secure, algorithmic methods with all operations transparently recorded on-chain."
     },
     {
-      title: "Prize Distribution Algorithm",
-      description: "Winners are selected proportionally based on their ticket count (1 ticket = 1 MAS deposited). The algorithm ensures statistical fairness over time while preventing manipulation."
+      title: "Governance & Community Control",
+      description: "Complete on-chain governance system allows community members to create proposals, vote on protocol changes, and collectively manage prize schedules, yield parameters, and future development through democratic consensus."
+    },
+    {
+      title: "Non-Custodial Security Model",
+      description: "Users maintain complete ownership of their deposits through non-custodial smart contract architecture. No centralized operators, admin keys, or trusted intermediaries can access or control user funds."
     }
   ];
 
@@ -77,7 +80,7 @@ const About = () => {
             About <span className="gradient-text">AutoPrize Vault</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Understanding how AutoPrize Vault works, the risks involved, and the technology behind autonomous prize distribution.
+            A community-governed, no-loss prize savings protocol built on Massa blockchain. Understanding the technology, governance, security features, and transparent operations behind decentralized prize distribution.
           </p>
         </motion.div>
 
@@ -98,14 +101,17 @@ const About = () => {
             <CardContent className="space-y-6">
               <div className="prose prose-sm max-w-none text-muted-foreground">
                 <p>
-                  AutoPrize Vault is a decentralized application built on the Massa blockchain that implements 
-                  a no-loss prize savings protocol. Users deposit MAS tokens which are automatically deployed 
-                  to generate yield through various DeFi strategies.
+                  AutoPrize Vault is a fully decentralized, community-governed application deployed on Massa BuildNet that implements 
+                  a no-loss prize savings protocol with transparent governance. Users deposit MAS tokens into a non-custodial smart contract 
+                  that automatically generates yield while preserving 100% capital protection.
                 </p>
                 <p>
-                  100% of the generated yield is pooled and distributed as prizes to randomly selected participants 
-                  every week. The selection process uses verifiable randomness to ensure fairness and prevent 
-                  manipulation.
+                  100% of generated yield flows into a community prize pool distributed weekly via Massa's cryptographically secure on-chain randomness. 
+                  The protocol features complete governance functionality where token holders can create proposals, vote on protocol changes, 
+                  and collectively manage the ecosystem's future development.
+                </p>
+                <p>
+                  Smart contract address: <code className="bg-muted px-2 py-1 rounded text-xs">AS1Dc3Q3W4uwvtFALXvcpbsP2uvcSUPiE1YebdMgLsYMr6VBT9oz</code>
                 </p>
               </div>
 
@@ -199,18 +205,18 @@ const About = () => {
                 {[
                   {
                     icon: Lock,
-                    title: "Principal Protection",
-                    description: "Your deposits are never used as prizes - only the yield is at risk."
+                    title: "Cryptographic Principal Protection",
+                    description: "100% principal protection through immutable smart contract logic. Deposits are cryptographically secured and never at risk - only generated yield becomes prizes."
                   },
                   {
                     icon: Zap,
-                    title: "Autonomous Operation",
-                    description: "No admin keys or centralized control - everything runs via smart contracts."
+                    title: "Fully Decentralized Operation",
+                    description: "Zero admin keys, no centralized operators, no trusted intermediaries. Complete autonomy through smart contracts with community governance for protocol evolution."
                   },
                   {
                     icon: Target,
-                    title: "Verifiable Randomness",
-                    description: "All random selections can be independently verified on-chain."
+                    title: "Massa Native Randomness",
+                    description: "Prize selection uses Massa's built-in cryptographically secure on-chain randomness. All selections are mathematically verifiable and publicly auditable."
                   }
                 ].map((feature, index) => (
                   <motion.div
@@ -232,59 +238,19 @@ const About = () => {
           </Card>
         </motion.div>
 
-        {/* External Links */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mb-8"
-        >
-          <Card className="card-shadow">
-            <CardHeader>
-              <CardTitle>Additional Resources</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {[
-                  { title: "Security Audit Report", url: "#", desc: "Independent security assessment" },
-                  { title: "Source Code", url: "#", desc: "View on GitHub" },
-                  { title: "Massa Documentation", url: "#", desc: "Learn about Massa blockchain" },
-                  { title: "Bug Bounty Program", url: "#", desc: "Report vulnerabilities" }
-                ].map((link) => (
-                  <Button
-                    key={link.title}
-                    variant="outline"
-                    className="h-auto p-4 text-left justify-start"
-                    asChild
-                  >
-                    <a href={link.url} target="_blank" rel="noopener noreferrer">
-                      <div className="flex items-center gap-3">
-                        <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                        <div>
-                          <div className="font-medium">{link.title}</div>
-                          <div className="text-xs text-muted-foreground">{link.desc}</div>
-                        </div>
-                      </div>
-                    </a>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
         {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center"
         >
           <Card className="card-shadow">
             <CardContent className="p-8">
-              <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                By using AutoPrize Vault, you acknowledge that you understand the risks and technology involved.
+              <h2 className="text-2xl font-bold mb-4">Ready to Join the Community?</h2>
+              <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+                By using AutoPrize Vault, you join a decentralized community earning prizes while maintaining full control of your assets. 
+                You acknowledge understanding the technology, governance model, and associated risks of this autonomous protocol.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" className="pulse-primary" asChild>

@@ -1,185 +1,77 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { massaClient, type MassaAccount } from '@/lib/massa';
-import { toast } from '@/hooks/use-toast';
+import { create } from "zustand";
+import { connectMassa, wantNetwork, normalizeNet } from "@/lib/wallet";
 
-interface WalletState {
+type WalletState = {
   address: string | null;
+  balance: bigint | null;
   connected: boolean;
-  connecting: boolean;
-  account: MassaAccount | null;
-}
-
-interface WalletActions {
+  network: string | null;
   connect: () => Promise<void>;
-  disconnect: () => Promise<void>;
-  refreshAccount: () => Promise<void>;
-  setConnecting: (connecting: boolean) => void;
-}
+  refreshBalance: () => Promise<void>;
+  getContract: (addr: string) => any;
+  getPublicProvider: () => any | null;
+  requireNetwork: () => Promise<void>;
+};
 
-type WalletStore = WalletState & WalletActions;
+let session: Awaited<ReturnType<typeof connectMassa>> | null = null;
 
-export const useWallet = create<WalletStore>()(
-  persist(
-    (set, get) => ({
-      // State
-      address: null,
-      connected: false,
-      connecting: false,
-      account: null,
-
-      // Actions
-      setConnecting: (connecting: boolean) => {
-        set({ connecting });
-      },
-
-      connect: async () => {
-        const { setConnecting } = get();
-        
-        if (!massaClient.isWalletAvailable()) {
-          toast({
-            title: "Massa Station Required",
-            description: "Please install Massa Station extension to connect your wallet.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        try {
-          setConnecting(true);
-          const address = await massaClient.connectWallet();
-          const account = await massaClient.getAccount();
-          
-          set({
-            address,
-            connected: true,
-            account,
-            connecting: false
-          });
-
-          toast({
-            title: "Wallet Connected",
-            description: `Connected to ${massaClient.formatAddress(address)}`,
-          });
-        } catch (error) {
-          console.error('Connection failed:', error);
-          set({ connecting: false });
-          
-          toast({
-            title: "Connection Failed",
-            description: error instanceof Error ? error.message : "Failed to connect wallet",
-            variant: "destructive",
-          });
-        }
-      },
-
-      disconnect: async () => {
-        try {
-          await massaClient.disconnect();
-          set({
-            address: null,
-            connected: false,
-            account: null,
-            connecting: false
-          });
-
-          toast({
-            title: "Wallet Disconnected",
-            description: "Your wallet has been disconnected.",
-          });
-        } catch (error) {
-          console.error('Disconnect failed:', error);
-          // Still update state even if disconnect fails
-          set({
-            address: null,
-            connected: false,
-            account: null,
-            connecting: false
-          });
-        }
-      },
-
-      refreshAccount: async () => {
-        const { connected } = get();
-        if (!connected) return;
-
-        try {
-          const account = await massaClient.getAccount();
-          set({ account });
-        } catch (error) {
-          console.error('Failed to refresh account:', error);
-          // If refresh fails, assume disconnected
-          set({
-            address: null,
-            connected: false,
-            account: null,
-            connecting: false
-          });
-        }
-      },
-    }),
-    {
-      name: 'massa-wallet-storage',
-      partialize: (state) => ({
-        address: state.address,
-        connected: state.connected,
-        // Don't persist account data as it can become stale
-      }),
-      // Rehydrate connection state on app load
-      onRehydrateStorage: () => (state) => {
-        if (state?.connected && state?.address) {
-          // Verify connection is still valid and refresh account
-          massaClient.isConnected().then((isConnected) => {
-            if (isConnected) {
-              massaClient.getAccount().then((account) => {
-                useWallet.setState({ account });
-              }).catch(() => {
-                // If can't get account, disconnect
-                useWallet.getState().disconnect();
-              });
-            } else {
-              // If not connected, clear state
-              useWallet.setState({
-                address: null,
-                connected: false,
-                account: null,
-                connecting: false
-              });
-            }
-          }).catch(() => {
-            // If can't check connection, clear state
-            useWallet.setState({
-              address: null,
-              connected: false,
-              account: null,
-              connecting: false
-            });
-          });
-        }
-      },
+export const useWallet = create<WalletState>((set, get) => ({
+  address: null,
+  balance: null,
+  connected: false,
+  network: null,
+  connect: async () => {
+    session = await connectMassa();
+    const infos = await session.wallet.networkInfos().catch(() => null);
+    set({
+      address: session.address,
+      connected: true,
+      network: infos?.networkName ?? null,
+    });
+    await get().refreshBalance();
+  },
+  refreshBalance: async () => {
+    if (!session) return;
+    const bal = await session.provider.balance(true);
+    set({ balance: bal });
+  },
+  getContract: (addr: string) => {
+    if (!session) throw new Error("Not connected");
+    return session.sc(addr);
+  },
+  getPublicProvider: () => (session ? session.publicProvider : null),
+  requireNetwork: async () => {
+    if (!session) throw new Error("Not connected");
+    const want = wantNetwork();
+    let infos: any = null;
+    try {
+      infos = await session.wallet.networkInfos();
+    } catch {
+      infos = null;
     }
-  )
-);
+    const rawName = infos?.networkName ?? "";
+    const cur = normalizeNet(rawName);
 
-// Hook for transaction states
-interface TransactionState {
-  pending: boolean;
-  hash: string | null;
-}
+    // Update local state for UI pills/banners
+    const current = useWallet.getState?.();
+    if (current?.network !== rawName) {
+      (current as any)?.set?.({ network: rawName });
+    }
 
-interface TransactionActions {
-  setPending: (pending: boolean) => void;
-  setHash: (hash: string | null) => void;
-  reset: () => void;
-}
-
-type TransactionStore = TransactionState & TransactionActions;
-
-export const useTransaction = create<TransactionStore>((set) => ({
-  pending: false,
-  hash: null,
-  
-  setPending: (pending: boolean) => set({ pending }),
-  setHash: (hash: string | null) => set({ hash }),
-  reset: () => set({ pending: false, hash: null }),
+    if (cur === "unknown") {
+      console.warn(
+        `[wallet] Network could not be detected (got "${rawName || "empty"}"). Proceeding, but please ensure Massa Station is on ${
+          want === "buildnet" ? "BuildNet" : "Mainnet"
+        }.`
+      );
+      return; // don’t block — assertFinalSuccess will still catch wrong-network errors
+    }
+    if (cur !== want) {
+      throw new Error(
+        `Wallet network is ${rawName || cur}. Please switch to ${
+          want === "buildnet" ? "BuildNet" : "Mainnet"
+        } in Massa Station.`
+      );
+    }
+  },
 }));

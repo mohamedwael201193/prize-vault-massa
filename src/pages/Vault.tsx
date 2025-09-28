@@ -1,102 +1,164 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import confetti from "canvas-confetti";
+import { DiagnosticsPanel } from "@/components/DiagnosticsPanel";
+import { NetworkBanner } from "@/components/NetworkBanner";
+import { FeesAndRisks } from "@/components/onboarding/FeesAndRisks";
+import { NetworkIndicator } from "@/components/onboarding/NetworkIndicator";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { ReadOnlyBanner } from "@/components/onboarding/ReadOnlyBanner";
+import {
+    OddsMeterSkeleton,
+    ProgressBar,
+    StatsSkeleton,
+    VaultCardSkeleton,
+    WinnersFeedSkeleton
+} from "@/components/ui/loading-skeletons";
 import { DepositCard } from "@/components/vault/DepositCard";
-import { WithdrawCard } from "@/components/vault/WithdrawCard";
-import { StatsBar } from "@/components/vault/StatsBar";
 import { OddsMeter } from "@/components/vault/OddsMeter";
+import { StatsBar } from "@/components/vault/StatsBar";
+import { VaultSelector } from "@/components/vault/VaultSelector";
 import { WinnersFeed } from "@/components/vault/WinnersFeed";
+import { WithdrawCard } from "@/components/vault/WithdrawCard";
+import { useVaultSync } from "@/hooks/useVaultSync";
+import { useWallet } from "@/hooks/useWallet";
+import { computeNextDrawISO, extractCurrentPeriod } from "@/lib/periods";
+import { useVaultStore } from "@/state/vaultStore";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 const Vault = () => {
-  const [userBalance, setUserBalance] = useState(0);
-  const [userTickets, setUserTickets] = useState(0);
+  const { connected, connect, address, getContract, getPublicProvider } = useWallet();
+  const stats = useVaultStore((s) => s.stats);
+  const user = useVaultStore((s) => s.user);
+  const loading = useVaultStore((s) => s.loading);
+  const setContext = useVaultStore((s) => s.setContext);
+  const refetchWithRetry = useVaultStore((s) => s.refetchWithRetry);
+  
+  // Use vault sync to keep store in sync with active vault
+  const { activeVault } = useVaultSync();
 
-  const handleDeposit = (amount: number) => {
-    setUserBalance(prev => prev + amount);
-    setUserTickets(prev => prev + amount);
-    
-    // Trigger confetti on deposit
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-  };
+  const [nextDrawTime, setNextDrawTime] = useState("Drawing...");
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  const handleWithdraw = (amount: number) => {
-    if (amount <= userBalance) {
-      setUserBalance(prev => prev - amount);
-      setUserTickets(prev => Math.max(0, prev - amount));
+  useEffect(() => {
+    (async () => {
+      if (!connected) await connect();
+      if (address) {
+        setContext({ getContract, address, getPublicProvider });
+        await refetchWithRetry();
+      }
+    })();
+  }, [connected, connect, address, getContract, getPublicProvider, setContext, refetchWithRetry]);
+
+  useEffect(() => {
+    let stop = false;
+    async function updateNextDraw() {
+      try {
+        const prov = getPublicProvider();
+        if (!prov?.getNodeStatus || !stats?.nextDrawPeriod) {
+          if (!stop) setNextDrawTime("Drawing...");
+          return;
+        }
+        const status = await prov.getNodeStatus();
+        const curr = extractCurrentPeriod(status);
+        if (!stop) setNextDrawTime(computeNextDrawISO(stats.nextDrawPeriod, curr));
+      } catch (e) {
+        if (!stop) setNextDrawTime("Drawing...");
+      }
     }
-  };
-
-  // Mock stats data
-  const stats = {
-    tvl: 125000,
-    participants: 342,
-    prizePool: 2500,
-    nextDrawTime: "2024-01-15T20:00:00Z"
-  };
+    updateNextDraw();
+    const id = setInterval(updateNextDraw, 5000);
+    return () => { stop = true; clearInterval(id); };
+  }, [stats, getPublicProvider]);
 
   return (
-    <>
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+    <div className="container mx-auto px-4 py-8">
+      <NetworkBanner />
+      
+      {/* Network Status & Read-Only Mode */}
+      {!connected && <ReadOnlyBanner />}
+      <NetworkIndicator />
+      
+      {/* Vault Selector with Help */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.4 }}
+        className="mb-6 flex items-center justify-between"
+      >
+        <VaultSelector />
+        <div className="flex items-center gap-2">
+          <FeesAndRisks />
+          <OnboardingTour 
+            isOpen={showOnboarding}
+            onClose={() => setShowOnboarding(false)}
+            onComplete={() => setShowOnboarding(false)}
+          />
+        </div>
+      </motion.div>
+      
+      {/* Loading Progress */}
+      {loading.isLoading && (
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          className="mb-6"
         >
-          <StatsBar {...stats} />
+          <ProgressBar 
+            progress={loading.progress || 0} 
+            label={loading.stage} 
+            className="max-w-md mx-auto"
+          />
         </motion.div>
+      )}
 
-        {/* Main Grid */}
-        <div className="mt-8 grid gap-8 lg:grid-cols-3">
-          {/* Left Column - Deposit/Withdraw */}
-          <div className="space-y-6 lg:col-span-2">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              <DepositCard onDeposit={handleDeposit} />
-            </motion.div>
+      {/* Stats Bar */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        {loading.isLoading && !stats ? (
+          <StatsSkeleton />
+        ) : (
+          <StatsBar
+            tvl={stats?.tvlMas || 0}
+            participants={Number(stats?.participants || 0)}
+            prizePool={stats?.prizePoolMas || 0}
+            nextDrawTime={nextDrawTime}
+          />
+        )}
+      </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <WithdrawCard
-                onWithdraw={handleWithdraw}
-                userBalance={userBalance}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <OddsMeter
-                userTickets={userTickets}
-                totalTickets={stats.participants * 15} // Mock calculation
-              />
-            </motion.div>
-          </div>
-
-          {/* Right Column - Winners Feed */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="lg:col-span-1"
-          >
-            <WinnersFeed />
+      {/* Main Content */}
+      <div className="mt-8 grid gap-8 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.1 }}>
+            {loading.isLoading && !stats ? (
+              <VaultCardSkeleton title="Deposit MAS" />
+            ) : (
+              <DepositCard />
+            )}
+          </motion.div>
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+            {loading.isLoading && !user ? (
+              <VaultCardSkeleton title="Withdraw MAS" />
+            ) : (
+              <WithdrawCard userBalanceMas={user?.principalMas || 0} />
+            )}
+          </motion.div>
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
+            {loading.isLoading && !stats ? (
+              <OddsMeterSkeleton />
+            ) : (
+              <OddsMeter userTickets={user?.sharesNum || 0} totalTickets={stats?.totalSharesNum || 0} />
+            )}
           </motion.div>
         </div>
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.4 }} className="lg:col-span-1">
+          {loading.isLoading ? (
+            <WinnersFeedSkeleton />
+          ) : (
+            <WinnersFeed />
+          )}
+        </motion.div>
       </div>
-    </>
+      <DiagnosticsPanel />
+    </div>
   );
 };
 

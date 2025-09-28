@@ -1,8 +1,8 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Target, Ticket } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
+import { Target, Ticket } from "lucide-react";
 
 interface OddsMeterProps {
   userTickets: number;
@@ -10,8 +10,12 @@ interface OddsMeterProps {
 }
 
 export function OddsMeter({ userTickets, totalTickets }: OddsMeterProps) {
-  const winChance = totalTickets > 0 ? (userTickets / totalTickets) * 100 : 0;
-  const odds = totalTickets > 0 ? Math.floor(totalTickets / Math.max(userTickets, 1)) : 0;
+  // Make tickets user-friendly: convert nano shares to MAS tickets (1 MAS = 1 ticket)
+  const userFriendlyTickets = Math.floor(userTickets / 1e9) || 0;
+  const totalFriendlyTickets = Math.floor(totalTickets / 1e9) || 0;
+  
+  const winChance = totalFriendlyTickets > 0 ? (userFriendlyTickets / totalFriendlyTickets) * 100 : 0;
+  const odds = totalFriendlyTickets > 0 ? Math.floor(totalFriendlyTickets / Math.max(userFriendlyTickets, 1)) : 0;
 
   return (
     <Card className="card-shadow">
@@ -24,11 +28,11 @@ export function OddsMeter({ userTickets, totalTickets }: OddsMeterProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {userTickets === 0 ? (
+        {userFriendlyTickets === 0 ? (
           <div className="text-center py-8">
             <Ticket className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
             <p className="text-muted-foreground">
-              Make a deposit to get tickets and join the prize pool!
+              Deposit MAS to get tickets! 1 MAS = 1 ticket
             </p>
           </div>
         ) : (
@@ -56,11 +60,11 @@ export function OddsMeter({ userTickets, totalTickets }: OddsMeterProps) {
             {/* Ticket Stats */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1 text-center">
-                <p className="text-2xl font-bold text-primary">{userTickets}</p>
+                <p className="text-2xl font-bold text-primary">{userFriendlyTickets.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">Your Tickets</p>
               </div>
               <div className="space-y-1 text-center">
-                <p className="text-2xl font-bold text-secondary">{totalTickets.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-secondary">{totalFriendlyTickets.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">Total Tickets</p>
               </div>
             </div>
@@ -75,9 +79,9 @@ export function OddsMeter({ userTickets, totalTickets }: OddsMeterProps) {
 
             {/* Info */}
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>• Each 1 MAS deposited = 1 ticket</p>
-              <p>• Tickets remain active until withdrawal</p>
-              <p>• Winners selected via verifiable randomness</p>
+              <p>• Each 1 MAS in vault = 1 ticket</p>
+              <p>• Withdrawing reduces your tickets</p>
+              <p>• Higher stake = better winning odds</p>
             </div>
           </>
         )}

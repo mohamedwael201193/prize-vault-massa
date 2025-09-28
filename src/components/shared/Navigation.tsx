@@ -1,20 +1,24 @@
-import { Link, useLocation } from "react-router-dom";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Wallet, Menu, X, ChevronDown, LogOut } from "lucide-react";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useWallet } from "@/hooks/useWallet";
-import { massaClient } from "@/lib/massa";
+import { formatAddress } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, HelpCircle, LogOut, Menu, Wallet, X } from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const location = useLocation();
-  const { connected, connecting, address, connect, disconnect } = useWallet();
+  const { connected, address, connect } = useWallet();
 
   const navItems = [
     { path: "/", label: "Home" },
     { path: "/vault", label: "Vault" },
+    { path: "/winners", label: "Winners" },
+    { path: "/governance", label: "Governance" },
     { path: "/how-it-works", label: "How it Works" },
     { path: "/verify", label: "Verify" },
     { path: "/about", label: "About" }
@@ -52,19 +56,33 @@ export function Navigation() {
           ))}
         </div>
 
-        {/* Wallet Button */}
+        {/* Help & Wallet */}
         <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowOnboarding(true)}
+            className="hidden sm:flex items-center gap-1 text-muted-foreground hover:text-primary"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Help
+          </Button>
+          
           {connected && address ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2">
                   <Wallet className="h-4 w-4 text-success" />
-                  <span>{massaClient.formatAddress(address)}</span>
+                  <span>{formatAddress(address)}</span>
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={disconnect}>
+                <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Show Tutorial
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.reload()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Disconnect
                 </DropdownMenuItem>
@@ -73,12 +91,11 @@ export function Navigation() {
           ) : (
             <Button 
               onClick={connect}
-              disabled={connecting}
               className="pulse-primary"
               size="sm"
             >
               <Wallet className="mr-2 h-4 w-4" />
-              {connecting ? "Connecting..." : "Connect Wallet"}
+              Connect Wallet
             </Button>
           )}
 
@@ -118,10 +135,29 @@ export function Navigation() {
                   {item.label}
                 </Link>
               ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowOnboarding(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-2 w-full justify-start px-4 py-2 mt-2 text-muted-foreground hover:text-primary"
+              >
+                <HelpCircle className="h-4 w-4" />
+                Show Tutorial
+              </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Onboarding Tour */}
+      <OnboardingTour 
+        isOpen={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={() => setShowOnboarding(false)}
+      />
     </nav>
   );
 }

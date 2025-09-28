@@ -1,90 +1,101 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowUpRight, Minus, Wallet, ArrowLeft, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useWallet, useTransaction } from "@/hooks/useWallet";
-import { massaClient } from "@/lib/massa";
 import { toast } from "@/hooks/use-toast";
+import { useWallet } from "@/hooks/useWallet";
+import { GAS_SAFE_CALL } from "@/lib/gas";
+import { assertFinalSuccess } from "@/lib/ops";
+import { getVaultAddr } from "@/lib/sanity";
+import { useVaultStore } from "@/state/vaultStore";
+import { Args, Mas, parseUnits } from "@massalabs/massa-web3";
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowUpRight, Loader2, Wallet } from "lucide-react";
+import { useState } from "react";
+
+const VAULT = getVaultAddr();
 
 interface WithdrawCardProps {
   onWithdraw?: (amount: number) => void;
-  userBalance: number; // This represents user's shares in the vault
+  userBalanceMas: number;
 }
 
-export function WithdrawCard({ onWithdraw, userBalance }: WithdrawCardProps) {
+export function WithdrawCard({ onWithdraw, userBalanceMas }: WithdrawCardProps) {
   const [amount, setAmount] = useState("");
-  const { connected } = useWallet();
-  const { pending, setPending, setHash, reset } = useTransaction();
+  const { connected, connect, getContract, refreshBalance, requireNetwork, balance } = useWallet();
+  const refetch = useVaultStore((s) => s.refetch);
+  const [pending, setPending] = useState(false);
 
-  const handleWithdraw = async () => {
-    const withdrawShares = parseFloat(amount);
-    
-    // Validation
-    if (isNaN(withdrawShares) || withdrawShares <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid withdrawal amount",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Convert wallet balance from nanoMAS to MAS for display
+  const walletBalanceMas = balance ? Number(balance) / 1_000_000_000 : 0;
 
-    if (withdrawShares > userBalance) {
-      toast({
-        title: "Insufficient Shares",
-        description: `You only have ${userBalance} shares available`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!connected) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to withdraw",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  async function handleWithdrawMas(masAmount: number) {
     setPending(true);
-    reset();
-    
     try {
-      const txHash = await massaClient.withdraw(withdrawShares);
-      setHash(txHash);
+      if (!connected) await connect();
+      await requireNetwork();
+
+      // Check wallet has enough MAS to pay transaction fees (0.01 MAS minimum)
+      const feeRequired = 0.01; // Transaction fee in MAS
+      if (walletBalanceMas < feeRequired) {
+        throw new Error(`Insufficient wallet balance for transaction fee. Need at least ${feeRequired} MAS in wallet, but have ${walletBalanceMas.toFixed(4)} MAS.`);
+      }
+
+      const sc = getContract(VAULT);
+      
+      // Use parseUnits for precise conversion (avoid float precision issues)
+      const shares = parseUnits(String(masAmount), 9); // bigint
+      
+      // Handle BigInt serialization safely
+      const args = new Args();
+      try {
+        // Try BigInt first (preferred)
+        args.addU64(shares);
+      } catch {
+        // Fallback: convert to Number only if safe
+        if (shares > BigInt(Number.MAX_SAFE_INTEGER)) {
+          throw new Error("Amount too large for this client version.");
+        }
+        args.addU64(BigInt(Number(shares)));
+      }
+      
+      const op = await sc.call("withdraw", args, {
+        fee: Mas.fromString("0.01"),
+        maxGas: GAS_SAFE_CALL,
+      });
+      await assertFinalSuccess(op, "withdraw");
+      
+      // Parse events and apply optimistic updates
+      const evts = await (op.getFinalEvents?.() ?? []);
+      console.debug("[UI] Withdraw events:", evts);
+      useVaultStore.getState().mutateAfterEvent(evts);
+      
+      // Refresh wallet balance
+      await refreshBalance();
+      
+      // Prevent immediate refetch from overriding optimistic update
+      // Mark this transaction as recent to prevent blockchain override
+      const store = useVaultStore.getState();
+      (store as any).lastWithdrawTime = Date.now();
+      
+      console.debug("[UI] Withdraw complete with optimistic update protection.");
       
       toast({
-        title: "Withdrawal Submitted",
-        description: `Transaction hash: ${txHash.slice(0, 10)}...`,
+        title: "Withdrawal Confirmed",
+        description: `Successfully withdrew ${masAmount} MAS`,
       });
-      
-      // Call parent callback if provided
-      onWithdraw?.(withdrawShares);
-      setAmount("");
-      
-      // Success toast after a delay to simulate confirmation
-      setTimeout(() => {
-        toast({
-          title: "Withdrawal Confirmed",
-          description: `Successfully withdrew ${withdrawShares} shares`,
-        });
-      }, 3000);
-      
-    } catch (error) {
-      console.error("Withdrawal failed:", error);
+      onWithdraw?.(masAmount);
+    } catch (e) {
+      console.error("Withdrawal failed:", e);
       toast({
         title: "Withdrawal Failed",
-        description: error instanceof Error ? error.message : "Transaction failed",
+        description: e instanceof Error ? e.message : "Transaction failed",
         variant: "destructive",
       });
     } finally {
       setPending(false);
     }
-  };
+  }
 
   return (
     <Card className="card-shadow">
@@ -104,7 +115,7 @@ export function WithdrawCard({ onWithdraw, userBalance }: WithdrawCardProps) {
           </div>
         )}
 
-        {connected && userBalance === 0 && (
+        {connected && userBalanceMas === 0 && (
           <div className="text-center py-8">
             <ArrowLeft className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No shares to withdraw</p>
@@ -112,31 +123,31 @@ export function WithdrawCard({ onWithdraw, userBalance }: WithdrawCardProps) {
           </div>
         )}
 
-        {connected && userBalance > 0 && (
+        {connected && userBalanceMas > 0 && (
           <>
             <div className="space-y-2">
-            <Label htmlFor="withdraw-amount">Shares to Withdraw</Label>
+            <Label htmlFor="withdraw-amount">Amount to Withdraw (MAS)</Label>
             <div className="flex gap-2">
               <Input
                 id="withdraw-amount"
                 type="number"
-                placeholder="0"
+                placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                step="1"
-                min="1"
+                step="0.01"
+                min="0.01"
               />
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setAmount(userBalance.toString())}
+                onClick={() => setAmount(userBalanceMas.toString())}
                 className="h-8 px-2"
               >
                 Max
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Available: {userBalance} shares
+              Available: {userBalanceMas.toFixed(4)} MAS
             </p>
           </div>
 
@@ -148,25 +159,50 @@ export function WithdrawCard({ onWithdraw, userBalance }: WithdrawCardProps) {
             >
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Withdraw Shares:</span>
-                  <span className="font-medium">{amount}</span>
+                  <span className="text-muted-foreground">Withdraw Amount:</span>
+                  <span className="font-medium">{amount} MAS</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Remaining Shares:</span>
-                  <span className="font-medium">{userBalance - parseFloat(amount || "0")}</span>
+                  <span className="text-muted-foreground">Transaction Fee:</span>
+                  <span className="font-medium">~0.01 MAS</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current Wallet:</span>
+                  <span className="font-medium">{walletBalanceMas.toFixed(4)} MAS</span>
+                </div>
+                <div className="flex justify-between border-t border-border/40 pt-2">
+                  <span className="text-muted-foreground">Remaining Vault:</span>
+                  <span className="font-medium">{(userBalanceMas - parseFloat(amount || "0")).toFixed(4)} MAS</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {connected && walletBalanceMas < 0.01 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="p-3 bg-orange-50 border border-orange-200 rounded-lg"
+            >
+              <div className="flex items-center gap-2 text-sm text-orange-700">
+                <Wallet className="h-4 w-4" />
+                <span>
+                  <strong>Low Wallet Balance:</strong> Need at least 0.01 MAS in wallet for transaction fees.
+                  Current wallet: {walletBalanceMas.toFixed(4)} MAS
+                </span>
               </div>
             </motion.div>
           )}
 
           <Button
             className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-            onClick={handleWithdraw}
+            onClick={() => handleWithdrawMas(parseFloat(amount))}
             disabled={
               !connected || 
               !amount || 
               parseFloat(amount) <= 0 || 
-              parseFloat(amount) > userBalance ||
+              parseFloat(amount) > userBalanceMas ||
+              walletBalanceMas < 0.01 || // Need at least 0.01 MAS for transaction fee
               pending
             }
           >
@@ -175,6 +211,14 @@ export function WithdrawCard({ onWithdraw, userBalance }: WithdrawCardProps) {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...
               </>
+            ) : !connected ? (
+              "Connect Wallet"
+            ) : walletBalanceMas < 0.01 ? (
+              "Insufficient Wallet Balance for Fees"
+            ) : !amount || parseFloat(amount) <= 0 ? (
+              "Enter Withdrawal Amount"
+            ) : parseFloat(amount) > userBalanceMas ? (
+              "Exceeds Vault Balance"
             ) : (
               "Withdraw from Pool"
             )}
