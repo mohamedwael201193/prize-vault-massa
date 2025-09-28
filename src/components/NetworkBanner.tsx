@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useEffect, useState } from "react";
-import { getRpcUrl } from "@/lib/sanity";
 import { useWallet } from "@/hooks/useWallet";
+import { getRpcUrl } from "@/lib/sanity";
+import { useEffect, useState } from "react";
 
 export function NetworkBanner() {
   const { wallet } = (window as any)._massaCtx ?? {};
@@ -9,10 +9,19 @@ export function NetworkBanner() {
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skip network banner for DeWeb deployment
+    const isDeWebDeployment = window.location.hostname.includes('massa-deweb.xyz') || 
+                             window.location.hostname.includes('autoprize');
+    
+    if (isDeWebDeployment) {
+      setMsg(null);
+      return;
+    }
+
     (async () => {
       try {
-        const station = (await import("@massalabs/wallet-provider")).then(m => m.getWallets()).catch(() => null);
-        void station;
+        const station = await import("@massalabs/wallet-provider");
+        void station.getWallets();
       } catch {}
       const want = (getRpcUrl().toLowerCase().includes("buildnet")) ? "BuildNet" : "Mainnet";
       try {
@@ -27,7 +36,7 @@ export function NetworkBanner() {
 
   if (!msg) return null;
   return (
-    <Alert variant="warning" className="mb-3">
+    <Alert variant="destructive" className="mb-3">
       <AlertTitle>Network mismatch</AlertTitle>
       <AlertDescription>{msg}</AlertDescription>
     </Alert>

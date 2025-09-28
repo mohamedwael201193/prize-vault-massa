@@ -27,15 +27,29 @@ export const useWallet = create<WalletState>((set, get) => ({
   address: null,
   balance: null,
   connected: false,
-  network: null,
+  network: "BuildNet", // Default to BuildNet to avoid UI errors
   connect: async () => {
     session = await connectMassa();
-    const infos = await session.wallet.networkInfos().catch(() => null);
-    set({
-      address: session.address,
-      connected: true,
-      network: infos?.networkName ?? null,
-    });
+    
+    // Force BuildNet for DeWeb deployment
+    const isDeWebDeployment = window.location.hostname.includes('massa-deweb.xyz') || 
+                             window.location.hostname.includes('autoprize');
+    
+    if (isDeWebDeployment) {
+      set({
+        address: session.address,
+        connected: true,
+        network: "BuildNet",
+      });
+    } else {
+      const infos = await session.wallet.networkInfos().catch(() => null);
+      set({
+        address: session.address,
+        connected: true,
+        network: infos?.networkName ?? "BuildNet", // Default to BuildNet
+      });
+    }
+    
     await get().refreshBalance();
   },
   refreshBalance: async () => {
