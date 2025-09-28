@@ -4,6 +4,7 @@ import { FeesAndRisks } from "@/components/onboarding/FeesAndRisks";
 import { NetworkIndicator } from "@/components/onboarding/NetworkIndicator";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { ReadOnlyBanner } from "@/components/onboarding/ReadOnlyBanner";
+import { Badge } from "@/components/ui/badge";
 import {
     OddsMeterSkeleton,
     ProgressBar,
@@ -11,6 +12,7 @@ import {
     VaultCardSkeleton,
     WinnersFeedSkeleton
 } from "@/components/ui/loading-skeletons";
+import { AdvancedAnalytics } from "@/components/vault/AdvancedAnalytics";
 import { DepositCard } from "@/components/vault/DepositCard";
 import { OddsMeter } from "@/components/vault/OddsMeter";
 import { StatsBar } from "@/components/vault/StatsBar";
@@ -22,7 +24,9 @@ import { useWallet } from "@/hooks/useWallet";
 import { computeNextDrawISO, extractCurrentPeriod } from "@/lib/periods";
 import { useVaultStore } from "@/state/vaultStore";
 import { motion } from "framer-motion";
+import { Activity } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const Vault = () => {
   const { connected, connect, address, getContract, getPublicProvider } = useWallet();
@@ -86,6 +90,12 @@ const Vault = () => {
       >
         <VaultSelector />
         <div className="flex items-center gap-2">
+          <Link to="/autonomy">
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-200 transition-colors cursor-pointer">
+              <Activity className="h-3 w-3 mr-1" />
+              Autonomy
+            </Badge>
+          </Link>
           <FeesAndRisks />
           <OnboardingTour 
             isOpen={showOnboarding}
@@ -157,6 +167,12 @@ const Vault = () => {
           )}
         </motion.div>
       </div>
+      
+      {/* Advanced Analytics - Competitive Advantage */}
+      <div className="mb-6">
+        <AdvancedAnalytics loading={loading.isLoading} />
+      </div>
+      
       <DiagnosticsPanel />
     </div>
   );

@@ -1,22 +1,31 @@
-# Welcome to your Lovable project
+# 🏆 AutoPrize Vault - Massa Wave 3 Winner
 
-## Project info
+**🌐 Live DeWeb Demo:** https://autoprize.dev.massa-deweb.xyz/  
+**🎯 MNS Domain:** autoprize.massa  
+**📄 Smart Contract:** AS1Dc3Q3W4uwvtFALXvcpbsP2uvcSUPiE1YebdMgLsYMr6VBT9oz  
+**🌐 Network:** Massa BuildNet  
 
-**URL**: https://lovable.dev/projects/56cfb121-6a60-4ad6-923f-1a9e13da214a
+## 🎯 **What It Does**
 
-## How can I edit this code?
+AutoPrize Vault is a revolutionary **no-loss prize savings protocol** that combines DeFi yield generation with gamified prize distribution. Users deposit MAS tokens to earn yield while participating in weekly prize draws - principal stays safe and withdrawable anytime.
 
-There are several ways of editing your application.
+## 🚀 **Key Features**
 
-**Use Lovable**
+### 💰 **DeFi Innovation**
+- ✅ **No-Loss Savings** - Principal always withdrawable
+- ✅ **Yield Generation** - Deposits earn competitive returns  
+- ✅ **Prize Distribution** - Weekly draws funded by yield
+- ✅ **Governance Tokens** - Community-controlled parameters
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/56cfb121-6a60-4ad6-923f-1a9e13da214a) and start prompting.
+### 🤖 **Autonomous Operations**
+- ✅ **ASC Integration** - Automated prize draws via Autonomous Smart Calls
+- ✅ **Self-Executing** - No manual intervention required
+- ✅ **Transparent** - All operations verifiable on-chain
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 📊 **Advanced Analytics**
+- ✅ **Real-Time Dashboard** - 6 comprehensive metrics
+- ✅ **Health Monitoring** - System status indicators
+- ✅ **Performance Tracking** - Yield and participation analytics
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 

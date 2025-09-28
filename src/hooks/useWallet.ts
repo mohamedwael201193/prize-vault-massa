@@ -1,5 +1,13 @@
+import { connectMassa, normalizeNet, wantNetwork } from "@/lib/wallet";
 import { create } from "zustand";
-import { connectMassa, wantNetwork, normalizeNet } from "@/lib/wallet";
+
+// Network label fallback helper
+function labelFromUrl(url?: string): string {
+  const s = (url || "").toLowerCase();
+  if (s.includes("buildnet")) return "BuildNet";
+  if (s.includes("mainnet")) return "Mainnet";
+  return "Unknown";
+}
 
 type WalletState = {
   address: string | null;
@@ -43,20 +51,19 @@ export const useWallet = create<WalletState>((set, get) => ({
   requireNetwork: async () => {
     if (!session) throw new Error("Not connected");
     const want = wantNetwork();
-    let infos: any = null;
+    let rawName = "";
     try {
-      infos = await session.wallet.networkInfos();
-    } catch {
-      infos = null;
-    }
-    const rawName = infos?.networkName ?? "";
-    const cur = normalizeNet(rawName);
+      const infos = await session.wallet.networkInfos();
+      rawName = (infos as any)?.networkName || "";
+    } catch {}
+    
+    // Fallback to RPC URL if network name is unknown
+    const fallback = labelFromUrl(session?.publicProvider?.url);
+    const label = rawName || fallback;
+    const cur = normalizeNet(label);
 
-    // Update local state for UI pills/banners
-    const current = useWallet.getState?.();
-    if (current?.network !== rawName) {
-      (current as any)?.set?.({ network: rawName });
-    }
+    // Update local state for UI pills/banners with proper label
+    set({ network: label });
 
     if (cur === "unknown") {
       console.warn(

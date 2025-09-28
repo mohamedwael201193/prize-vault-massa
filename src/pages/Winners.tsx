@@ -8,7 +8,18 @@ import { useVaultSync } from '@/hooks/useVaultSync';
 import { useWallet } from '@/hooks/useWallet';
 import { bytesToString } from '@/lib/bytes';
 import { Args, SmartContract } from '@massalabs/massa-web3';
-import { Calendar, Check, Coins, Copy, Download, ExternalLink, Hash, Search, Trophy } from 'lucide-react';
+import {
+    Calendar,
+    Check,
+    Coins,
+    Copy,
+    Download,
+    ExternalLink,
+    Hash,
+    Search,
+    Shield,
+    Trophy
+} from "lucide-react";
 import { useEffect, useMemo, useState } from 'react';
 
 interface Winner {
@@ -370,6 +381,19 @@ export default function Winners() {
                         <div className="text-xs text-muted-foreground">
                           {parseInt(winner.prize).toLocaleString()} nano
                         </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => window.open(`/fairness?drawId=${winner.period}`, '_blank')}
+                        >
+                          <Shield size={12} className="mr-1" />
+                          View Proof
+                        </Button>
                       </div>
                     </div>
                   ))}

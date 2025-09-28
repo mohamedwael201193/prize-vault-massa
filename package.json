@@ -8,7 +8,11 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deweb:build:win": "powershell -Command \"$env:VITE_COMMIT_HASH=(git rev-parse --short HEAD); $env:VITE_ROUTER_MODE='hash'; $env:VITE_BUILD_TIME=(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ'); npm run build\"",
+    "deweb:build:unix": "export VITE_COMMIT_HASH=\"$(git rev-parse --short HEAD)\" && export VITE_ROUTER_MODE=hash && export VITE_BUILD_TIME=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" && npm run build",
+    "deweb:upload": "deweb-cli upload ./dist --node https://buildnet.massa.net/api/v2 --wallet",
+    "deweb:help": "echo \"Usage: npm run deweb:build:win && npm run deweb:upload -- /path/to/wallet.json\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -69,6 +73,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@massalabs/deweb-cli": "^0.6.1",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",
@@ -82,6 +87,7 @@
     "lovable-tagger": "^1.1.9",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
+    "tslib": "^2.8.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19"

@@ -1,0 +1,25 @@
+{
+  "resource": "AS1PPc46NsyjzoDsqnKnxyenk6cZu5nSnPuMANyreE7DSwh9Q7R3",
+  "mns": "autoprize.massa",
+  "updated": "2025-09-29T00:00:00Z",
+  "deployment": {
+    "network": "BuildNet",
+    "contract": "AS1Dc3Q3W4uwvtFALXvcpbsP2uvcSUPiE1YebdMgLsYMr6VBT9oz",
+    "version": "3.0.0",
+    "deweb_contract": "AS1PPc46NsyjzoDsqnKnxyenk6cZu5nSnPuMANyreE7DSwh9Q7R3",
+    "size": "2.28 MB",
+    "cost": "239.88 MAS"
+  },
+  "features": [
+    "autonomous_governance",
+    "fairness_verification", 
+    "real_time_analytics",
+    "deweb_native",
+    "gas_optimization"
+  ],
+  "metadata": {
+    "hackathon": "Massa Wave 3",
+    "category": "DeFi Infrastructure",
+    "description": "Community-governed prize vault with autonomous operations and cryptographic fairness verification"
+  }
+}

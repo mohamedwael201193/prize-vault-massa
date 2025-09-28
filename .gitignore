@@ -22,3 +22,83 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 🔒 SECRET FILES - NEVER COMMIT THESE
+*.json.secret
+*wallet*
+*secret*
+*private*
+deweb_cli_config.json
+deweb-wallet.json
+autoprize-deweb-wallet.json
+wallet_devmo*
+*.yaml
+*.key
+*.pem
+.env
+.env.local
+.env.production
+.env.development
+SECRET_KEY*
+
+# 🚫 DEPLOYMENT & CONFIG FILES
+deweb_cli_config*
+*.config.secret
+build-manifest.json
+
+# 📚 DOCUMENTATION FILES (not essential for hackathon)
+*.md
+!README.md
+JUDGE_GUIDE.md
+DEWEB_DEPLOYMENT.md
+COMPETITIVE_ANALYSIS.md
+deployment-guide.md
+judge-runbook.md
+hackathon-submission.md
+
+# 🚀 BUILD & DEPLOYMENT ARTIFACTS
+build/
+.build/
+*.wasm
+*.wasm.map
+*.wat
+coverage/
+.nyc_output/
+
+# 🔧 DEVELOPMENT FILES
+.cache/
+.temp/
+.tmp/
+*.pid
+*.seed
+*.pid.lock
+
+# 📊 ANALYTICS & LOGS
+analytics/
+logs/
+*.analytics
+.sentry/
+
+# 🌐 DEWEB SPECIFIC
+resource.json.backup
+deweb-resources/
+*.deweb.cache
+
+# 💻 OS SPECIFIC
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# 🔐 SECURITY SENSITIVE
+*.private
+*.confidential
+secrets/
+private-keys/
+wallets/
