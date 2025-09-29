@@ -230,38 +230,53 @@ const Autonomy = () => {
         transition={{ duration: 0.6, delay: 0.1 }}
         className="mb-8"
       >
-        <Card className={`card-shadow border-2 ${
-          healthStatus === 'green' ? 'border-green-200 bg-green-50/50' :
-          healthStatus === 'amber' ? 'border-yellow-200 bg-yellow-50/50' :
-          'border-red-200 bg-red-50/50'
+        <Card className={`card-shadow border-0 shadow-lg ${
+          healthStatus === 'green' ? 'bg-gradient-to-br from-emerald-50 to-green-50' :
+          healthStatus === 'amber' ? 'bg-gradient-to-br from-yellow-50 to-orange-50' :
+          'bg-gradient-to-br from-red-50 to-pink-50'
         }`}>
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3">
-              {getHealthIcon()}
-              <span>System Health Status</span>
-              <Badge className={`ml-auto ${
-                healthStatus === 'green' ? 'bg-green-100 text-green-800' :
-                healthStatus === 'amber' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-red-100 text-red-800'
+              <div className={`p-2 rounded-lg ${
+                healthStatus === 'green' ? 'bg-emerald-100' :
+                healthStatus === 'amber' ? 'bg-yellow-100' :
+                'bg-red-100'
+              }`}>
+                {getHealthIcon()}
+              </div>
+              <span className={
+                healthStatus === 'green' ? 'text-emerald-900' :
+                healthStatus === 'amber' ? 'text-yellow-900' :
+                'text-red-900'
+              }>System Health Status</span>
+              <Badge className={`ml-auto shadow-sm ${
+                healthStatus === 'green' ? 'bg-emerald-500 text-white' :
+                healthStatus === 'amber' ? 'bg-yellow-500 text-white' :
+                'bg-red-500 text-white'
               }`}>
                 {healthStatus.toUpperCase()}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">{getHealthMessage()}</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Last Operation:</span>
-                <div className="text-muted-foreground">Period {lastRunPeriod}</div>
+            <div className="mb-6 p-4 bg-white/60 rounded-xl border border-gray-100">
+              <p className="text-sm text-gray-700 font-medium">{getHealthMessage()}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-white/60 rounded-xl border border-blue-100 shadow-sm">
+                <span className="text-sm font-medium text-blue-700 mb-2 block">Last Operation</span>
+                <div className="text-2xl font-bold text-blue-600 mb-1">Period {lastRunPeriod}</div>
+                <div className="text-xs text-blue-500">Recently Executed</div>
               </div>
-              <div>
-                <span className="font-medium">Frequency:</span>
-                <div className="text-muted-foreground">Every 144 periods (~1 hour)</div>
+              <div className="text-center p-4 bg-white/60 rounded-xl border border-purple-100 shadow-sm">
+                <span className="text-sm font-medium text-purple-700 mb-2 block">Frequency</span>
+                <div className="text-2xl font-bold text-purple-600 mb-1">144</div>
+                <div className="text-xs text-purple-500">Periods (~1 hour)</div>
               </div>
-              <div>
-                <span className="font-medium">Next Check:</span>
-                <div className="text-muted-foreground">Period {lastRunPeriod + 144}</div>
+              <div className="text-center p-4 bg-white/60 rounded-xl border border-orange-100 shadow-sm">
+                <span className="text-sm font-medium text-orange-700 mb-2 block">Next Check</span>
+                <div className="text-2xl font-bold text-orange-600 mb-1">Period {lastRunPeriod + 144}</div>
+                <div className="text-xs text-orange-500">Scheduled</div>
               </div>
             </div>
           </CardContent>
@@ -276,35 +291,53 @@ const Autonomy = () => {
           transition={{ duration: 0.6, delay: 0.15 }}
           className="mb-8"
         >
-          <Card className="card-shadow border-blue-200 bg-blue-50/50">
-            <CardHeader>
+          <Card className="card-shadow border-0 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
+            <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3">
-                <Activity className="h-5 w-5 text-blue-600" />
-                <span>Live Vault Statistics</span>
-                <Badge className="ml-auto bg-blue-100 text-blue-800">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <Activity className="h-5 w-5 text-blue-700" />
+                </div>
+                <span className="text-blue-900">Live Vault Statistics</span>
+                <Badge className="ml-auto bg-blue-500 text-white shadow-sm">
                   REAL DATA
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Total Shares:</span>
-                  <div className="text-2xl font-bold text-blue-600">{realStats.totalShares || '0'}</div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="text-center p-4 bg-white/60 rounded-xl border border-blue-100 shadow-sm">
+                  <span className="text-sm font-medium text-blue-700 mb-2 block">Total Shares</span>
+                  <div className="text-3xl font-bold text-blue-600 mb-1">
+                    {realStats.totalShares ? (Number(realStats.totalShares) / 1e9).toFixed(2) + ' MAS' : '0 MAS'}
+                  </div>
+                  {realStats.totalShares && (
+                    <div className="text-xs text-gray-500 mb-1">
+                      {Number(realStats.totalShares).toLocaleString()} nanoMAS
+                    </div>
+                  )}
+                  <div className="text-xs text-blue-500">Active Participants</div>
                 </div>
-                <div>
-                  <span className="font-medium">Winners Count:</span>
-                  <div className="text-2xl font-bold text-green-600">{realStats.winnerCount || '0'}</div>
+                <div className="text-center p-4 bg-white/60 rounded-xl border border-emerald-100 shadow-sm">
+                  <span className="text-sm font-medium text-emerald-700 mb-2 block">Winners Count</span>
+                  <div className="text-3xl font-bold text-emerald-600 mb-1">{realStats.winnerCount || '0'}</div>
+                  <div className="text-xs text-emerald-500">Lucky Players</div>
                 </div>
-                <div>
-                  <span className="font-medium">Total Prizes:</span>
-                  <div className="text-2xl font-bold text-purple-600">{realStats.totalPrizes || '0'}</div>
+                <div className="text-center p-4 bg-white/60 rounded-xl border border-purple-100 shadow-sm">
+                  <span className="text-sm font-medium text-purple-700 mb-2 block">Total Prizes</span>
+                  <div className="text-3xl font-bold text-purple-600 mb-1">{realStats.totalPrizes || '0'}</div>
+                  <div className="text-xs text-purple-500">Awarded</div>
                 </div>
-                <div>
-                  <span className="font-medium">Contract Balance:</span>
-                  <div className="text-2xl font-bold text-orange-600">
+                <div className="text-center p-4 bg-white/60 rounded-xl border border-orange-100 shadow-sm">
+                  <span className="text-sm font-medium text-orange-700 mb-2 block">Contract Balance</span>
+                  <div className="text-3xl font-bold text-orange-600 mb-1">
                     {realStats.balance ? (Number(realStats.balance) / 1e9).toFixed(2) + ' MAS' : '0 MAS'}
                   </div>
+                  {realStats.balance && (
+                    <div className="text-xs text-gray-500 mb-1">
+                      {Number(realStats.balance).toLocaleString()} nanoMAS
+                    </div>
+                  )}
+                  <div className="text-xs text-orange-500">Available Prize Pool</div>
                 </div>
               </div>
             </CardContent>
