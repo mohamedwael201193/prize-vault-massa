@@ -19,6 +19,8 @@ export function Navigation() {
     { path: "/vault", label: "Vault" },
     { path: "/winners", label: "Winners" },
     { path: "/governance", label: "Governance" },
+    { path: "/autonomy", label: "Autonomy" },
+    { path: "/fairness", label: "Fairness" },
     { path: "/how-it-works", label: "How it Works" },
     { path: "/verify", label: "Verify" },
     { path: "/about", label: "About" }

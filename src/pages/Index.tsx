@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Zap, Coins, ArrowRight, Lock, TrendingUp } from "lucide-react";
+import { Shield, Zap, Coins, ArrowRight, Lock, TrendingUp, Activity, Globe } from "lucide-react";
 import heroImage from "@/assets/hero-vault.jpg";
 
 const Index = () => {
@@ -132,6 +132,95 @@ const Index = () => {
                 </Card>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Advanced Features Section */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl font-bold mb-4">
+              Transparent & 
+              <span className="gradient-text"> Autonomous</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Advanced monitoring and verification systems ensure complete transparency and autonomous operation.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0, duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <Link to="/autonomy">
+                <Card className="card-shadow border-border/50 hover:border-blue-500/50 transition-all cursor-pointer group">
+                  <CardContent className="p-6 text-center">
+                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                      <Activity className="h-6 w-6 text-blue-500" />
+                    </div>
+                    <h3 className="mb-2 text-xl font-semibold">System Health</h3>
+                    <p className="text-muted-foreground mb-4">Monitor autonomous operations and system health in real-time</p>
+                    <Button variant="ghost" size="sm" className="group-hover:text-blue-500">
+                      View Monitoring →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <Link to="/fairness">
+                <Card className="card-shadow border-border/50 hover:border-green-500/50 transition-all cursor-pointer group">
+                  <CardContent className="p-6 text-center">
+                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                      <Shield className="h-6 w-6 text-green-500" />
+                    </div>
+                    <h3 className="mb-2 text-xl font-semibold">Fairness Proofs</h3>
+                    <p className="text-muted-foreground mb-4">Verify cryptographic fairness of all prize draws</p>
+                    <Button variant="ghost" size="sm" className="group-hover:text-green-500">
+                      View Proofs →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <Link to="/deweb">
+                <Card className="card-shadow border-border/50 hover:border-purple-500/50 transition-all cursor-pointer group">
+                  <CardContent className="p-6 text-center">
+                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                      <Globe className="h-6 w-6 text-purple-500" />
+                    </div>
+                    <h3 className="mb-2 text-xl font-semibold">DeWeb Hosting</h3>
+                    <p className="text-muted-foreground mb-4">Learn about our fully decentralized hosting on Massa</p>
+                    <Button variant="ghost" size="sm" className="group-hover:text-purple-500">
+                      View Details →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
           </div>
         </div>
       </section>

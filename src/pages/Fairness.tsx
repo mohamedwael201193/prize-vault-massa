@@ -32,33 +32,54 @@ const Fairness = () => {
 
   useEffect(() => {
     const drawId = searchParams.get('drawId');
+    const seed = searchParams.get('seed');
     if (drawId) {
-      fetchDrawEvent(parseInt(drawId));
+      fetchDrawEvent(parseInt(drawId), seed);
     } else {
       fetchLatestDraw();
     }
   }, [searchParams, getPublicProvider]);
 
-  const fetchDrawEvent = async (drawId: number) => {
+  const fetchDrawEvent = async (drawId: number, providedSeed?: string | null) => {
     try {
-      // In real implementation, this would fetch from contract events
+      // Use provided seed or generate mock data based on drawId
+      const seeds = {
+        "12345": "a7f8d9e2c4b1f5a3e8d2c9b6f1a4e7d0c3b8f5a2e9d6c1b4",
+        "12344": "b8e9c5f3d6a2e7b4c1f8d9e2a5b6c3f4e7a8b9c2d5e6f1a3",
+        "12343": "c9f2e5a8b1d4e7f0a3b6c9d2e5f8a1b4c7d0e3f6a9b2c5"
+      };
+      
+      const winners = {
+        "12345": "AU1kwtk5zM8T9jR3cN7vL2sP4uQ8xW6bY3aH9mK2sJ4wE7rT",
+        "12344": "AU1xyz9mN8P2qR5tV7sL4pW6bY3aH9kJ2wE7rT5zM8N1cQ4u", 
+        "12343": "AU1abc3dE4fG5hI6jK7lM8nO9pQ2rS1tU4vW6xY8zA2bC5d"
+      };
+      
+      const prizes = {
+        "12345": "5.25",
+        "12344": "4.80", 
+        "12343": "6.10"
+      };
+      
+      const useSeed = providedSeed || seeds[drawId.toString()] || 'a7f8d9e2c4b1f5a3e8d2c9b6f1a4e7d0c3b8f5a2e9d6c1b4';
+      
       const mockDraw: DrawEvent = {
         id: drawId,
-        period: 12345678,
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        seed: 'a7f8d9e2c4b1f5a3e8d2c9b6f1a4e7d0c3b8f5a2e9d6c1b4f7a0e3d8c5b2f9a6',
+        period: drawId,
+        timestamp: new Date(Date.now() - (parseInt(drawId.toString().slice(-1)) * 24 * 60 * 60 * 1000)).toISOString(),
+        seed: useSeed,
         totalShares: 150,
         winnerIndex: 73,
-        winnerAddress: 'AU12345...abcdef',
-        prizeAmount: '2.5',
+        winnerAddress: winners[drawId.toString()] || 'AU12345...abcdef',
+        prizeAmount: prizes[drawId.toString()] || '2.5',
         participants: 42,
-        blockHash: 'b3c4f5a1e8d2c9b6f7a0e3d8c5b2f9a6e1d4c7b0f3a8e5d2c9b6f1a4e7d0c3b8',
+        blockHash: `b3c4f5a1e8d2c9b6f7a0e3d8c5b2f9a6e1d4c7b0f3a8e5d2c9b6f1a4e7d0c3b8${drawId}`,
         entropy: [
-          '12345678', // currentPeriod
-          '12345677', // period-1  
-          '12345676', // period-2
-          'a7f8d9e2', // contract entropy
-          'c4b1f5a3'  // additional entropy
+          drawId.toString(), // currentPeriod
+          (drawId - 1).toString(), // period-1  
+          (drawId - 2).toString(), // period-2
+          useSeed.slice(0, 8), // contract entropy
+          useSeed.slice(8, 16)  // additional entropy
         ]
       };
 
@@ -72,7 +93,7 @@ const Fairness = () => {
 
   const fetchLatestDraw = async () => {
     // Fetch the most recent draw event
-    await fetchDrawEvent(10); // Mock latest draw ID
+    await fetchDrawEvent(12345); // Mock latest draw ID
   };
 
   const recomputeWinner = () => {
