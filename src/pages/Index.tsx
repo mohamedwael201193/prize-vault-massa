@@ -1,10 +1,10 @@
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Zap, Coins, ArrowRight, Lock, TrendingUp, Activity, Globe } from "lucide-react";
 import heroImage from "@/assets/hero-vault.jpg";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Activity, ArrowRight, Coins, Globe, Lock, Shield, TrendingUp, Zap } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const badges = [

@@ -1,7 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useVaultSync } from "@/hooks/useVaultSync";
 import { useWallet } from "@/hooks/useWallet";
+import { bytesToString } from "@/lib/bytes";
+import { Args, SmartContract } from "@massalabs/massa-web3";
 import { motion } from "framer-motion";
 import { Activity, AlertCircle, CheckCircle, Clock, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -27,23 +30,50 @@ interface DrawHistory {
 
 const Autonomy = () => {
   const { getPublicProvider } = useWallet();
+  const { activeVault } = useVaultSync();
   const [scheduledRuns, setScheduledRuns] = useState<ScheduledRun[]>([]);
   const [drawHistory, setDrawHistory] = useState<DrawHistory[]>([]);
   const [healthStatus, setHealthStatus] = useState<'green' | 'amber' | 'red'>('green');
   const [lastRunPeriod, setLastRunPeriod] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [realStats, setRealStats] = useState<any>(null);
 
   useEffect(() => {
     fetchAutonomyData();
-  }, [getPublicProvider]);
+  }, [getPublicProvider, activeVault.address]);
 
   const fetchAutonomyData = async () => {
     try {
       const provider = getPublicProvider();
       if (!provider) return;
 
-      // Get current period for calculations
-      const currentPeriod = 12345678; // This would come from the blockchain
+      // Try to fetch real vault stats
+      try {
+        const vaultAddr = activeVault.address;
+        const sc = new SmartContract(provider as any, vaultAddr);
+        const statsArgs = new Args();
+        const statsRaw = await sc.read('getVaultStats', statsArgs);
+        const stats = JSON.parse(bytesToString(statsRaw));
+        setRealStats(stats);
+        
+        // Set health status based on real data
+        const totalShares = parseInt(stats.totalShares || '0');
+        if (totalShares > 100) {
+          setHealthStatus('green');
+        } else if (totalShares > 10) {
+          setHealthStatus('amber');
+        } else {
+          setHealthStatus('red');
+        }
+        
+        console.log('✅ Real vault stats loaded:', stats);
+      } catch (error) {
+        console.log('Using demo data for autonomy monitoring');
+        setHealthStatus('amber'); // No real data available
+      }
+
+      // Get current period for calculations (mock for now, would be from blockchain)
+      const currentPeriod = 12345678;
 
       // Mock scheduled runs (in real implementation, this would come from contract)
       const mockScheduled: ScheduledRun[] = [
@@ -237,6 +267,50 @@ const Autonomy = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Real Vault Stats */}
+      {realStats && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="mb-8"
+        >
+          <Card className="card-shadow border-blue-200 bg-blue-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <Activity className="h-5 w-5 text-blue-600" />
+                <span>Live Vault Statistics</span>
+                <Badge className="ml-auto bg-blue-100 text-blue-800">
+                  REAL DATA
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Total Shares:</span>
+                  <div className="text-2xl font-bold text-blue-600">{realStats.totalShares || '0'}</div>
+                </div>
+                <div>
+                  <span className="font-medium">Winners Count:</span>
+                  <div className="text-2xl font-bold text-green-600">{realStats.winnerCount || '0'}</div>
+                </div>
+                <div>
+                  <span className="font-medium">Total Prizes:</span>
+                  <div className="text-2xl font-bold text-purple-600">{realStats.totalPrizes || '0'}</div>
+                </div>
+                <div>
+                  <span className="font-medium">Contract Balance:</span>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {realStats.balance ? (Number(realStats.balance) / 1e9).toFixed(2) + ' MAS' : '0 MAS'}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Scheduled Operations */}
       <motion.div

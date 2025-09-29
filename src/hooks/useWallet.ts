@@ -15,6 +15,7 @@ type WalletState = {
   connected: boolean;
   network: string | null;
   connect: () => Promise<void>;
+  disconnect: () => void;
   refreshBalance: () => Promise<void>;
   getContract: (addr: string) => any;
   getPublicProvider: () => any | null;
@@ -29,28 +30,75 @@ export const useWallet = create<WalletState>((set, get) => ({
   connected: false,
   network: "BuildNet", // Default to BuildNet to avoid UI errors
   connect: async () => {
-    session = await connectMassa();
+    try {
+      console.log('🔗 Starting wallet connection...');
+      session = await connectMassa();
+      console.log('✅ Massa connection established');
+      
+      // Force BuildNet for DeWeb deployment
+      const isDeWebDeployment = window.location.hostname.includes('massa-deweb.xyz') || 
+                               window.location.hostname.includes('autoprize');
+      
+      if (isDeWebDeployment) {
+        set({
+          address: session.address,
+          connected: true,
+          network: "BuildNet",
+        });
+      } else {
+        try {
+          const infos = await session.wallet.networkInfos();
+          console.log('📡 Network info:', infos);
+          set({
+            address: session.address,
+            connected: true,
+            network: (infos as any)?.networkName ?? (infos as any)?.name ?? "BuildNet", // Default to BuildNet
+          });
+        } catch (networkError) {
+          console.warn('⚠️ Could not get network info, defaulting to BuildNet:', networkError);
+          set({
+            address: session.address,
+            connected: true,
+            network: "BuildNet",
+          });
+        }
+      }
+      
+      console.log('✅ Wallet connected:', session.address);
+      await get().refreshBalance();
+    } catch (error) {
+      console.error('❌ Wallet connection failed:', error);
+      throw error;
+    }
+  },
+  disconnect: () => {
+    session = null;
+    set({
+      address: null,
+      balance: null,
+      connected: false,
+      network: "BuildNet",
+    });
+    // Clear any cached wallet data from localStorage and sessionStorage
+    localStorage.clear();
+    sessionStorage.clear();
     
-    // Force BuildNet for DeWeb deployment
-    const isDeWebDeployment = window.location.hostname.includes('massa-deweb.xyz') || 
-                             window.location.hostname.includes('autoprize');
-    
-    if (isDeWebDeployment) {
-      set({
-        address: session.address,
-        connected: true,
-        network: "BuildNet",
+    // Also clear any massa-specific storage
+    try {
+      ['wallet-connect', 'massa-wallet', 'massa-session', 'connected-wallet'].forEach(key => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
       });
-    } else {
-      const infos = await session.wallet.networkInfos().catch(() => null);
-      set({
-        address: session.address,
-        connected: true,
-        network: infos?.networkName ?? "BuildNet", // Default to BuildNet
-      });
+    } catch (e) {
+      console.log('Error clearing storage:', e);
     }
     
-    await get().refreshBalance();
+    console.log('🔌 Wallet fully disconnected - all storage cleared');
+    
+    // Force page reload to ensure clean state
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   },
   refreshBalance: async () => {
     if (!session) return;

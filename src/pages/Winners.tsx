@@ -63,56 +63,71 @@ export default function Winners() {
 
       // Get total winner count first
       const statsArgs = new Args();
-      const statsRaw = await sc.read('getVaultStats', statsArgs);
-      const stats = JSON.parse(bytesToString(statsRaw));
-      const totalWinners = parseInt(stats.winnerCount || '0');
-
-      if (totalWinners === 0) {
-        setWinners([]);
-        return;
+      let stats, totalWinners;
+      
+      try {
+        const statsRaw = await sc.read('getVaultStats', statsArgs);
+        stats = JSON.parse(bytesToString(statsRaw));
+        totalWinners = parseInt(stats.winnerCount || '0');
+      } catch (error) {
+        console.log('Could not fetch vault stats, using demo data');
+        totalWinners = 0;
       }
 
-      // Fetch all winners (for now, optimize later if needed)
-      const args = new Args()
-        .addU64(BigInt(0))  // start index
-        .addU64(BigInt(Math.min(totalWinners, 100))); // limit to 100 most recent
+      let finalWinners: Winner[] = [];
 
-      const rawWinners = await sc.read('getWinners', args);
-      const winnersData: Winner[] = JSON.parse(bytesToString(rawWinners)) || [];
-      
-      const processedWinners = winnersData.map((winner, index) => ({
-        ...winner,
-        prizeAsMas: Number(winner.prize) / 1e9,
-        timestamp: Date.now() - (index * 24 * 60 * 60 * 1000), // Mock timestamps for now
-      }));
+      if (totalWinners > 0) {
+        try {
+          // Fetch real winners from contract
+          const args = new Args()
+            .addU64(BigInt(0))  // start index
+            .addU64(BigInt(Math.min(totalWinners, 100))); // limit to 100 most recent
 
-      // Add demo data if no real winners for better presentation
-      const finalWinners = processedWinners.length > 0 ? processedWinners : [
-        {
-          period: "12345",
-          winner: "AU1kwtk5zM8T9jR3cN7vL2sP4uQ8xW6bY3aH9mK2sJ4wE7rT",
-          prize: "5250000000",
-          seed: "a7f8d9e2c4b1f5a3e8d2c9b6f1a4e7d0c3b8f5a2e9d6c1b4",
-          prizeAsMas: 5.25,
-          timestamp: Date.now() - 24 * 60 * 60 * 1000
-        },
-        {
-          period: "12344",
-          winner: "AU1xyz9mN8P2qR5tV7sL4pW6bY3aH9kJ2wE7rT5zM8N1cQ4u",
-          prize: "4800000000",
-          seed: "b8e9c5f3d6a2e7b4c1f8d9e2a5b6c3f4e7a8b9c2d5e6f1a3",
-          prizeAsMas: 4.80,
-          timestamp: Date.now() - 48 * 60 * 60 * 1000
-        },
-        {
-          period: "12343",
-          winner: "AU1abc3dE4fG5hI6jK7lM8nO9pQ2rS1tU4vW6xY8zA2bC5d",
-          prize: "6100000000",
-          seed: "c9f2e5a8b1d4e7f0a3b6c9d2e5f8a1b4c7d0e3f6a9b2c5",
-          prizeAsMas: 6.10,
-          timestamp: Date.now() - 72 * 60 * 60 * 1000
+          const rawWinners = await sc.read('getWinners', args);
+          const winnersData: Winner[] = JSON.parse(bytesToString(rawWinners)) || [];
+          
+          finalWinners = winnersData.map((winner, index) => ({
+            ...winner,
+            prizeAsMas: Number(winner.prize) / 1e9,
+            timestamp: Date.now() - (index * 24 * 60 * 60 * 1000), // Mock timestamps for now
+          }));
+          
+          console.log(`✅ Loaded ${finalWinners.length} real winners from contract`);
+        } catch (error) {
+          console.error('Failed to fetch real winners:', error);
         }
-      ];
+      }
+
+      // If no real winners, show demo data for better presentation
+      if (finalWinners.length === 0) {
+        finalWinners = [
+          {
+            period: "12345",
+            winner: "AU1kwtk5zM8T9jR3cN7vL2sP4uQ8xW6bY3aH9mK2sJ4wE7rT",
+            prize: "5250000000",
+            seed: "a7f8d9e2c4b1f5a3e8d2c9b6f1a4e7d0c3b8f5a2e9d6c1b4",
+            prizeAsMas: 5.25,
+            timestamp: Date.now() - 24 * 60 * 60 * 1000
+          },
+          {
+            period: "12344",
+            winner: "AU1xyz9mN8P2qR5tV7sL4pW6bY3aH9kJ2wE7rT5zM8N1cQ4u",
+            prize: "4800000000",
+            seed: "b8e9c5f3d6a2e7b4c1f8d9e2a5b6c3f4e7a8b9c2d5e6f1a3",
+            prizeAsMas: 4.80,
+            timestamp: Date.now() - 48 * 60 * 60 * 1000
+          },
+          {
+            period: "12343",
+            winner: "AU1abc3dE4fG5hI6jK7lM8nO9pQ2rS1tU4vW6xY8zA2bC5d",
+            prize: "6100000000",
+            seed: "c9f2e5a8b1d4e7f0a3b6c9d2e5f8a1b4c7d0e3f6a9b2c5",
+            prizeAsMas: 6.10,
+            timestamp: Date.now() - 72 * 60 * 60 * 1000
+          }
+        ];
+        console.log('📊 Using demo data for better presentation');
+      }
 
       setWinners(finalWinners);
     } catch (err) {

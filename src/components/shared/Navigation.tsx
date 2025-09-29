@@ -12,7 +12,7 @@ export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const location = useLocation();
-  const { connected, address, connect } = useWallet();
+  const { connected, address, connect, disconnect } = useWallet();
 
   const navItems = [
     { path: "/", label: "Home" },
@@ -84,7 +84,7 @@ export function Navigation() {
                   <HelpCircle className="mr-2 h-4 w-4" />
                   Show Tutorial
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.location.reload()}>
+                <DropdownMenuItem onClick={disconnect}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Disconnect
                 </DropdownMenuItem>
