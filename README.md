@@ -4,7 +4,6 @@
 [![Vercel Demo](https://img.shields.io/badge/🚀%20Vercel%20Demo-prize--vault--massa.vercel.app-black?style=for-the-badge)](https://prize-vault-massa.vercel.app/)
 [![GitHub](https://img.shields.io/badge/📱%20Source%20Code-GitHub-green?style=for-the-badge)](https://github.com/mohamedwael201193/prize-vault-massa)
 
-> **🎯 Winner of Massa Hackathon Wave 3** - Revolutionary autonomous no-loss prize savings built on Massa blockchain with real autonomous smart contracts
 
 ---
 
@@ -444,14 +443,7 @@ npm run deploy
 
 ---
 
-## 🏆 **Awards & Recognition**
 
-- 🥇 **Massa Hackathon Wave 3 Winner** - Best use of Autonomous Smart Contracts
-- 🎯 **Innovation Award** - Revolutionary no-loss prize mechanism
-- 🛠 **Technical Excellence** - Advanced ASC implementation
-- 🌟 **Community Choice** - Most user-friendly DeFi protocol
-
----
 
 ## 🤝 **Contributing**
 
