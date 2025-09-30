@@ -54,6 +54,7 @@ const Autonomy = () => {
         const statsArgs = new Args();
         const statsRaw = await sc.read('getVaultStats', statsArgs);
         const stats = JSON.parse(bytesToString(statsRaw));
+        
         setRealStats(stats);
         
         // Set health status based on real data
@@ -330,7 +331,7 @@ const Autonomy = () => {
                 <div className="text-center p-4 bg-white/60 rounded-xl border border-orange-100 shadow-sm">
                   <span className="text-sm font-medium text-orange-700 mb-2 block">Contract Balance</span>
                   <div className="text-3xl font-bold text-orange-600 mb-1">
-                    {realStats.balance ? (Number(realStats.balance) / 1e9).toFixed(2) + ' MAS' : '0 MAS'}
+                    {realStats.balance ? (Number(realStats.balance) / 1e9).toFixed(2) + ' MAS' : '0.00 MAS'}
                   </div>
                   {realStats.balance && (
                     <div className="text-xs text-gray-500 mb-1">
