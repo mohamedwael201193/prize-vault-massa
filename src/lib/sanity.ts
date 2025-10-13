@@ -1,8 +1,8 @@
 // Legacy function for backward compatibility - gets the default vault address
 export function getVaultAddr(): string {
-  const a = import.meta.env.VITE_VAULT_ADDR;
-  if (!a) throw new Error("VITE_VAULT_ADDR missing");
-  if (!a.startsWith("AS")) throw new Error(`VITE_VAULT_ADDR must start with AS (got ${a})`);
+  const a = import.meta.env.VITE_VAULT_ADDRESS;
+  if (!a) throw new Error("VITE_VAULT_ADDRESS missing");
+  if (!a.startsWith("AS")) throw new Error(`VITE_VAULT_ADDRESS must start with AS (got ${a})`);
   return a;
 }
 

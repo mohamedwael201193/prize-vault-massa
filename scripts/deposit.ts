@@ -17,7 +17,7 @@ async function depositToVault() {
   // Create provider
   const provider = JsonRpcProvider.buildnet(account);
 
-  const vaultAddr = process.env.VAULT_ADDR || 'AS1Dc3Q3W4uwvtFALXvcpbsP2uvcSUPiE1YebdMgLsYMr6VBT9oz';
+  const vaultAddr = process.env.VAULT_ADDRESS || process.env.VITE_VAULT_ADDRESS || process.env.VAULT_ADDR || 'AS13fFdTwt9zEg6mpZeDqip9xUJnYopfByNUCTX8ZLRPJfzHzJkm';
   const amountMAS = process.argv[2] ? parseFloat(process.argv[2]) : 1.0;
   const amountNanoMAS = BigInt(Math.floor(amountMAS * 1e9));
 

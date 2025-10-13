@@ -9,16 +9,16 @@ import { useWallet } from '@/hooks/useWallet';
 import { bytesToString } from '@/lib/bytes';
 import { Args, SmartContract } from '@massalabs/massa-web3';
 import {
-    Calendar,
-    Check,
-    Coins,
-    Copy,
-    Download,
-    ExternalLink,
-    Hash,
-    Search,
-    Shield,
-    Trophy
+  Calendar,
+  Check,
+  Coins,
+  Copy,
+  Download,
+  ExternalLink,
+  Hash,
+  Search,
+  Shield,
+  Trophy
 } from "lucide-react";
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -81,7 +81,7 @@ export default function Winners() {
           // Fetch real winners from contract
           const args = new Args()
             .addU64(BigInt(0))  // start index
-            .addU64(BigInt(Math.min(totalWinners, 100))); // limit to 100 most recent
+            .addU64(BigInt(totalWinners)); // fetch ALL winners (no limit)
 
           const rawWinners = await sc.read('getWinners', args);
           const winnersData: Winner[] = JSON.parse(bytesToString(rawWinners)) || [];
@@ -140,6 +140,18 @@ export default function Winners() {
 
   useEffect(() => {
     fetchWinners();
+  }, [wallet.connected, activeVault.address]);
+
+  // Auto-refresh winners every 30 seconds to show new draws
+  useEffect(() => {
+    if (!wallet.connected) return;
+    
+    const interval = setInterval(() => {
+      console.log('[Winners] Auto-refreshing winners data...');
+      fetchWinners();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
   }, [wallet.connected, activeVault.address]);
 
   // Filter and sort winners
