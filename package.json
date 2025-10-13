@@ -12,7 +12,16 @@
     "deweb:build:win": "powershell -Command \"$env:VITE_COMMIT_HASH=(git rev-parse --short HEAD); $env:VITE_ROUTER_MODE='hash'; $env:VITE_BUILD_TIME=(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ'); npm run build\"",
     "deweb:build:unix": "export VITE_COMMIT_HASH=\"$(git rev-parse --short HEAD)\" && export VITE_ROUTER_MODE=hash && export VITE_BUILD_TIME=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" && npm run build",
     "deweb:upload": "deweb-cli upload ./dist --node https://buildnet.massa.net/api/v2 --wallet",
-    "deweb:help": "echo \"Usage: npm run deweb:build:win && npm run deweb:upload -- /path/to/wallet.json\""
+    "deweb:help": "echo \"Usage: npm run deweb:build:win && npm run deweb:upload -- /path/to/wallet.json\"",
+    "check-vault": "cd scripts && npx tsx check-vault.ts",
+    "setup-draw": "cd scripts && npx tsx setup-draw.ts",
+    "trigger-draw": "cd scripts && npx tsx trigger-draw.ts",
+    "deposit": "cd scripts && npx tsx deposit.ts",
+    "fund-prize-pool": "cd scripts && npx tsx fund-prize-pool.ts",
+    "complete-demo": "cd scripts && npx tsx complete-demo-setup.ts",
+    "create-proposal": "cd scripts && npx tsx create-test-proposal.ts",
+    "execute-proposal": "cd scripts && npx tsx execute-proposal.ts",
+    "strategic-setup": "cd scripts && npx tsx strategic-setup.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -52,6 +61,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.22",
     "input-otp": "^1.4.2",
@@ -88,6 +98,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "tslib": "^2.8.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19"

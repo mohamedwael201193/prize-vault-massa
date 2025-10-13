@@ -18,15 +18,15 @@ export interface VaultConfig {
 export const VAULT_CONFIGS: VaultConfig[] = [
   {
     id: 'main-vault',
-    name: 'Main Vault',
-    description: 'Original AutoPrize Vault with regular draws',
-    address: import.meta.env.VITE_VAULT_ADDR || '',
+    name: '0.5 MAS Prize Vault (LIVE!)',
+    description: 'Fixed 0.5 MAS prizes every ~48 seconds - REAL WINNERS!',
+    address: 'AS13fFdTwt9zEg6mpZeDqip9xUJnYopfByNUCTX8ZLRPJfzHzJkm',
     category: 'weekly',
-    drawPeriods: 100,
-    tickPeriods: 10,
-    minPrize: 100_000_000, // 0.1 MAS
-    color: 'blue',
-    icon: '🏦',
+    drawPeriods: 3,    // ~48 seconds for instant demo
+    tickPeriods: 1,    // ~16 seconds for instant demo  
+    minPrize: 10_000_000, // 0.01 MAS (lowered for demo)
+    color: 'violet',
+    icon: '💎',
     enabled: true,
   },
   {
