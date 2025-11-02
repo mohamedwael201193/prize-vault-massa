@@ -1,6 +1,11 @@
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useWallet } from "@/hooks/useWallet";
 import { formatAddress } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,12 +23,8 @@ export function Navigation() {
     { path: "/", label: "Home" },
     { path: "/vault", label: "Vault" },
     { path: "/winners", label: "Winners" },
-    { path: "/governance", label: "Governance" },
-    { path: "/autonomy", label: "Autonomy" },
-    { path: "/fairness", label: "Fairness" },
     { path: "/how-it-works", label: "How it Works" },
-    { path: "/verify", label: "Verify" },
-    { path: "/about", label: "About" }
+    { path: "/about", label: "About" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -69,11 +70,15 @@ export function Navigation() {
             <HelpCircle className="h-4 w-4" />
             Help
           </Button>
-          
+
           {connected && address ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
                   <Wallet className="h-4 w-4 text-success" />
                   <span>{formatAddress(address)}</span>
                   <ChevronDown className="h-3 w-3" />
@@ -91,11 +96,7 @@ export function Navigation() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button 
-              onClick={connect}
-              className="pulse-primary"
-              size="sm"
-            >
+            <Button onClick={connect} className="pulse-primary" size="sm">
               <Wallet className="mr-2 h-4 w-4" />
               Connect Wallet
             </Button>
@@ -108,7 +109,11 @@ export function Navigation() {
             className="md:hidden"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </Button>
         </div>
       </div>
@@ -155,7 +160,7 @@ export function Navigation() {
       </AnimatePresence>
 
       {/* Onboarding Tour */}
-      <OnboardingTour 
+      <OnboardingTour
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
         onComplete={() => setShowOnboarding(false)}

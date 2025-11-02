@@ -1,36 +1,45 @@
 import { Args } from '@massalabs/as-types';
 import {
-    Address,
-    Context,
-    Storage,
-    deferredCallQuote, deferredCallRegister,
-    generateEvent,
-    transferCoins
-} from "@massalabs/massa-as-sdk";
+  Address,
+  Context,
+  Storage,
+  deferredCallRegister,
+  generateEvent,
+  transferCoins,
+} from '@massalabs/massa-as-sdk';
 
-// Keys
-const TOTAL_SHARES = "total_shares";
-const TOTAL_PRINCIPAL = "total_principal";
-const PRIZE_POOL = "prize_pool";
-const NEXT_DRAW_PERIOD = "next_draw_period";
-const DRAW_PERIODS = "draw_periods";
-const TICK_PERIODS = "tick_periods";
-const PARTICIPANT_COUNT = "participant_count";
-const SCHEDULER_SEED = "scheduler_seed";
+// Core Keys
+const PRIZE_POOL = 'prize_pool';
+const NEXT_DRAW_PERIOD = 'next_draw_period';
+const DRAW_PERIODS = 'draw_periods';
+const TICK_PERIODS = 'tick_periods';
+const PARTICIPANT_COUNT = 'participant_count';
+const SCHEDULER_SEED = 'scheduler_seed';
+const MIN_PRIZE_THRESHOLD = 'min_prize_threshold';
+const WINNER_COUNT = 'winner_count';
+const LAST_DRAW_PERIOD = 'last_draw_period';
 
-// Enhanced features
-const MIN_PRIZE_THRESHOLD = "min_prize_threshold";
-const WINNER_COUNT = "winner_count";
-const LAST_DRAW_PERIOD = "last_draw_period";
-const CONTRACT_VERSION = "contract_version";
+// Risk Tier Keys - TVL per tier
+const CONSERVATIVE_TVL = 'conservative_tvl';
+const MODERATE_TVL = 'moderate_tvl';
+const AGGRESSIVE_TVL = 'aggressive_tvl';
 
-// Governance
-const PROPOSAL_COUNT = "proposal_count";
-const GOVERNANCE_DELAY = "governance_delay";
+// Risk Tier Keys - Total tickets (shares) per tier
+const CONSERVATIVE_TICKETS = 'conservative_tickets';
+const MODERATE_TICKETS = 'moderate_tickets';
+const AGGRESSIVE_TICKETS = 'aggressive_tickets';
 
-// Constants
-const DEFAULT_MIN_PRIZE = 100_000_000; // 0.1 MAS minimum
-const DEFAULT_GOVERNANCE_DELAY = 100800; // ~7 days in periods
+// Ticket multipliers
+const CONSERVATIVE_MULTIPLIER: u64 = 1; // 1 ticket per MAS
+const MODERATE_MULTIPLIER: u64 = 2; // 2 tickets per MAS
+const AGGRESSIVE_MULTIPLIER: u64 = 4; // 4 tickets per MAS
+
+// Protection percentages (stored, not used in v1)
+const CONSERVATIVE_PROTECTION: u64 = 95; // 95% protected
+const MODERATE_PROTECTION: u64 = 90; // 90% protected
+const AGGRESSIVE_PROTECTION: u64 = 80; // 80% protected
+
+const DEFAULT_MIN_PRIZE = 100_000_000; // 0.1 MAS
 
 function sHas(k: string): bool {
   return Storage.has(k);
@@ -42,444 +51,609 @@ function sSetU64(k: string, v: u64): void {
   Storage.set(k, v.toString());
 }
 
-function arrayBufferToStaticArrayU8(buffer: ArrayBuffer): StaticArray<u8> {
-  const uint8View = Uint8Array.wrap(buffer);
-  const staticArray = new StaticArray<u8>(uint8View.length);
-  for (let i = 0; i < uint8View.length; i++) {
-    unchecked(staticArray[i] = uint8View[i]);
-  }
-  return staticArray;
+function participantKey(i: i32): string {
+  return 'addr_' + i.toString();
+}
+function winnerKey(i: i32): string {
+  return 'winner_' + i.toString();
 }
 
-function userSharesKey(a: string): string { return "user_shares:" + a; }
-function userPrincipalKey(a: string): string { return "user_principal:" + a; }
-function participantKey(i: i32): string { return "addr_" + i.toString(); }
-function winnerKey(i: i32): string { return "winner_" + i.toString(); }
-function proposalKey(i: i32): string { return "proposal_" + i.toString(); }
+// User tier tracking: which tier did user deposit into?
+function userTierKey(addr: string): string {
+  return 'user_tier:' + addr;
+}
+
+// User principal per tier
+function userPrincipalConservativeKey(addr: string): string {
+  return 'user_principal_conservative:' + addr;
+}
+function userPrincipalModerateKey(addr: string): string {
+  return 'user_principal_moderate:' + addr;
+}
+function userPrincipalAggressiveKey(addr: string): string {
+  return 'user_principal_aggressive:' + addr;
+}
+
+// User tickets per tier
+function userTicketsConservativeKey(addr: string): string {
+  return 'user_tickets_conservative:' + addr;
+}
+function userTicketsModerateKey(addr: string): string {
+  return 'user_tickets_moderate:' + addr;
+}
+function userTicketsAggressiveKey(addr: string): string {
+  return 'user_tickets_aggressive:' + addr;
+}
 
 // Fair RNG using multi-block entropy
 function generateFairSeed(): u64 {
   const currentP = Context.currentPeriod();
   let entropy: u64 = 0;
-  
-  // Mix entropy from multiple recent periods for better randomness
   entropy ^= u64(currentP);
   entropy ^= u64(currentP - 1) << 16;
   entropy ^= u64(currentP - 2) << 32;
-  
-  // Add contract-specific entropy
-  const totalShares = sGetU64(TOTAL_SHARES);
+  const totalTickets =
+    sGetU64(CONSERVATIVE_TICKETS) +
+    sGetU64(MODERATE_TICKETS) +
+    sGetU64(AGGRESSIVE_TICKETS);
   const prizePool = sGetU64(PRIZE_POOL);
-  entropy ^= totalShares;
+  entropy ^= totalTickets;
   entropy ^= prizePool << 8;
-  
   return entropy;
 }
 
 export function constructor(args: StaticArray<u8>): void {
-  assert(Context.isDeployingContract()); // on deploy only
+  assert(Context.isDeployingContract());
   const a = new Args(args);
-  const drawPeriods = a.nextU64().expect("draw_periods");
-  const tickPeriods = a.nextU64().expect("tick_periods");
+  const drawPeriods = a.nextU64().expect('draw_periods');
+  const tickPeriods = a.nextU64().expect('tick_periods');
 
-  // Core parameters
   sSetU64(DRAW_PERIODS, drawPeriods);
   sSetU64(TICK_PERIODS, tickPeriods);
-  sSetU64(TOTAL_SHARES, 0);
-  sSetU64(TOTAL_PRINCIPAL, 0);
   sSetU64(PRIZE_POOL, 0);
-  
-  // Enhanced features
   sSetU64(MIN_PRIZE_THRESHOLD, DEFAULT_MIN_PRIZE);
   sSetU64(WINNER_COUNT, 0);
-  sSetU64(PROPOSAL_COUNT, 0);
-  sSetU64(GOVERNANCE_DELAY, DEFAULT_GOVERNANCE_DELAY);
-  Storage.set(CONTRACT_VERSION, "1.0.0");
   sSetU64(PARTICIPANT_COUNT, 0);
+
+  // Initialize tier tracking
+  sSetU64(CONSERVATIVE_TVL, 0);
+  sSetU64(MODERATE_TVL, 0);
+  sSetU64(AGGRESSIVE_TVL, 0);
+  sSetU64(CONSERVATIVE_TICKETS, 0);
+  sSetU64(MODERATE_TICKETS, 0);
+  sSetU64(AGGRESSIVE_TICKETS, 0);
 
   const nowP = Context.currentPeriod();
   sSetU64(NEXT_DRAW_PERIOD, nowP + drawPeriods);
 
   scheduleTick(nowP + tickPeriods);
-  generateEvent(`init: drawPeriods=${drawPeriods.toString()} tickPeriods=${tickPeriods.toString()}`);
+  generateEvent(
+    `init: drawPeriods=${drawPeriods.toString()} tickPeriods=${tickPeriods.toString()}`,
+  );
 }
 
-// Anyone can fund scheduler fees without affecting user principal
+function scheduleTick(targetPeriod: u64): void {
+  const thr = Context.currentThread();
+  const slot = new Context.Slot(targetPeriod, <u8>thr);
+  const maxGas: i32 = 2_000_000;
+
+  const id = deferredCallRegister(
+    Context.callee().toString(),
+    'tick',
+    slot,
+    maxGas,
+    [],
+    0,
+  );
+  generateEvent(`tick_scheduled:${targetPeriod.toString()}:${id}`);
+}
+
+const GAS_SAFE_CALL: u64 = 100_000_000;
+
 export function seedScheduler(): void {
   const c = Context.transferredCoins();
-  assert(c > 0, "zero");
+  assert(c > 0, 'zero');
   const prev = sGetU64(SCHEDULER_SEED);
   sSetU64(SCHEDULER_SEED, prev + c);
   generateEvent(`seedScheduler:${c.toString()}`);
 }
 
-// Payable deposit
-export function deposit(): void {
-  const amount = Context.transferredCoins();
+export function addToPrizePool(): void {
+  const c = Context.transferredCoins();
+  assert(c > 0, 'zero coins');
+  const prev = sGetU64(PRIZE_POOL);
+  sSetU64(PRIZE_POOL, prev + c);
+  generateEvent(`prizePoolFunded:${c.toString()}`);
+}
 
-  // Allow read-only simulations (coins=0) to succeed without touching storage.
+// DEPOSIT FUNCTIONS - Three separate functions for each tier
+
+export function depositConservative(): void {
+  const amount = Context.transferredCoins();
   if (amount == 0) {
-    generateEvent("deposit_dry_run");
+    generateEvent('deposit_dry_run');
     return;
   }
 
   const caller = Context.caller().toString();
-  const sharesKey = userSharesKey(caller);
-  const principalKey = userPrincipalKey(caller);
 
-  const prevShares = sGetU64(sharesKey, 0);
-  const prevPrincipal = sGetU64(principalKey, 0);
-
-  if (prevShares == 0) {
+  // Track if new participant
+  const existingPrincipal = sGetU64(userPrincipalConservativeKey(caller), 0);
+  if (existingPrincipal == 0) {
     const n = <i32>sGetU64(PARTICIPANT_COUNT, 0);
     Storage.set(participantKey(n), caller);
     sSetU64(PARTICIPANT_COUNT, u64(n + 1));
   }
 
-  sSetU64(sharesKey, prevShares + amount);
-  sSetU64(principalKey, prevPrincipal + amount);
-  sSetU64(TOTAL_SHARES, sGetU64(TOTAL_SHARES, 0) + amount);
-  sSetU64(TOTAL_PRINCIPAL, sGetU64(TOTAL_PRINCIPAL, 0) + amount);
+  // Calculate tickets: 1 ticket per MAS
+  const tickets = amount * CONSERVATIVE_MULTIPLIER;
 
-  generateEvent(`deposit:${caller}:${amount.toString()}`);
+  // Update user data
+  const prevPrincipal = sGetU64(userPrincipalConservativeKey(caller), 0);
+  const prevTickets = sGetU64(userTicketsConservativeKey(caller), 0);
+  sSetU64(userPrincipalConservativeKey(caller), prevPrincipal + amount);
+  sSetU64(userTicketsConservativeKey(caller), prevTickets + tickets);
+  Storage.set(userTierKey(caller), 'conservative');
+
+  // Update global tier data
+  sSetU64(CONSERVATIVE_TVL, sGetU64(CONSERVATIVE_TVL, 0) + amount);
+  sSetU64(CONSERVATIVE_TICKETS, sGetU64(CONSERVATIVE_TICKETS, 0) + tickets);
+
+  generateEvent(
+    `depositConservative:${caller}:${amount.toString()}:${tickets.toString()}`,
+  );
 }
 
-export function withdraw(args: StaticArray<u8>): void {
-  const a = new Args(args);
-  const amount = a.nextU64().expect("amount");
-  const caller = Context.caller().toString();
-
-  const sharesKey = userSharesKey(caller);
-  const principalKey = userPrincipalKey(caller);
-  
-  const shares = sGetU64(sharesKey, 0);
-  const principal = sGetU64(principalKey, 0);
-  
-  assert(amount > 0 && amount <= shares, "bad_amount");
-  assert(amount <= principal, "insufficient_principal");
-
-  // Update user balances
-  sSetU64(sharesKey, shares - amount);
-  sSetU64(principalKey, principal - amount);
-  
-  // Update global totals
-  sSetU64(TOTAL_SHARES, sGetU64(TOTAL_SHARES, 0) - amount);
-  sSetU64(TOTAL_PRINCIPAL, sGetU64(TOTAL_PRINCIPAL, 0) - amount);
-
-  transferCoins(new Address(caller), amount);
-  generateEvent(`withdraw:${caller}:${amount.toString()}`);
-}
-
-// Autonomous tick via deferred calls
-export function tick(): void {
-  // DISABLED: Mock yield was creating imbalance between contract balance and promised payouts
-  // TODO: Replace with real yield generation mechanism (e.g. staking rewards, trading fees)
-  // const mock = 100_000_000;
-  // sSetU64(PRIZE_POOL, sGetU64(PRIZE_POOL) + mock);
-  // generateEvent(`yield:${mock.toString()}`);
-
-  const nowP = Context.currentPeriod();
-  const nextDraw = sGetU64(NEXT_DRAW_PERIOD);
-  
-  // Check if it's time for a draw
-  if (nowP >= nextDraw) {
-    const drawResult = enhancedRunDraw();
-    
-    // Always reschedule next draw regardless of result
-    const drawPeriods = sGetU64(DRAW_PERIODS);
-    sSetU64(NEXT_DRAW_PERIOD, nowP + drawPeriods);
-    
-    generateEvent(`draw_scheduled:${(nowP + drawPeriods).toString()}`);
-  }
-
-  // Schedule next tick
-  const tickPeriods = sGetU64(TICK_PERIODS);
-  scheduleTick(nowP + tickPeriods);
-}
-
-function runDraw(): void {
-  const prize = sGetU64(PRIZE_POOL);
-  const total = sGetU64(TOTAL_SHARES);
-  const cnt = i32(sGetU64(PARTICIPANT_COUNT));
-  if (prize == 0 || total == 0 || cnt == 0) {
-    generateEvent("draw_skipped");
+export function depositModerate(): void {
+  const amount = Context.transferredCoins();
+  if (amount == 0) {
+    generateEvent('deposit_dry_run');
     return;
   }
 
-  // “Unsafe” seeded by current period; fine for demo, documented as pseudo-random
-  const seed = u64(Context.currentPeriod());
-  const target = seed % total;
+  const caller = Context.caller().toString();
 
-  let cumul: u64 = 0;
-  let winner = "";
-  for (let i = 0; i < cnt; i++) {
-    const addr = Storage.get(participantKey(i))!;
-    const sh = sGetU64(userSharesKey(addr));
-    cumul += sh;
-    if (cumul > target) { winner = addr; break; }
+  const existingPrincipal = sGetU64(userPrincipalModerateKey(caller), 0);
+  if (existingPrincipal == 0) {
+    const n = <i32>sGetU64(PARTICIPANT_COUNT, 0);
+    Storage.set(participantKey(n), caller);
+    sSetU64(PARTICIPANT_COUNT, u64(n + 1));
   }
-  if (winner.length == 0) { generateEvent("draw_failed"); return; }
 
-  transferCoins(new Address(winner), prize);
-  sSetU64(PRIZE_POOL, 0);
-  generateEvent(`winner:${winner}:${prize.toString()}`);
+  // Calculate tickets: 2 tickets per MAS
+  const tickets = amount * MODERATE_MULTIPLIER;
+
+  const prevPrincipal = sGetU64(userPrincipalModerateKey(caller), 0);
+  const prevTickets = sGetU64(userTicketsModerateKey(caller), 0);
+  sSetU64(userPrincipalModerateKey(caller), prevPrincipal + amount);
+  sSetU64(userTicketsModerateKey(caller), prevTickets + tickets);
+  Storage.set(userTierKey(caller), 'moderate');
+
+  sSetU64(MODERATE_TVL, sGetU64(MODERATE_TVL, 0) + amount);
+  sSetU64(MODERATE_TICKETS, sGetU64(MODERATE_TICKETS, 0) + tickets);
+
+  generateEvent(
+    `depositModerate:${caller}:${amount.toString()}:${tickets.toString()}`,
+  );
 }
 
-// Book a deferred call at a given future period on current thread
-function scheduleTick(targetPeriod: u64): void {
-  const thr = Context.currentThread();
-  const slot = new Context.Slot(targetPeriod, <u8>thr);
-  const maxGas: i32 = 2_000_000; // adjust if needed
+export function depositAggressive(): void {
+  const amount = Context.transferredCoins();
+  if (amount == 0) {
+    generateEvent('deposit_dry_run');
+    return;
+  }
 
-  // Get quote (optional, for logs) then register
-  const _quote = deferredCallQuote(slot, maxGas, 0);
-  const id = deferredCallRegister(Context.callee().toString(), "tick", slot, maxGas, [], 0);
-  generateEvent(`tick_scheduled:${targetPeriod.toString()}:${id}`);
+  const caller = Context.caller().toString();
+
+  const existingPrincipal = sGetU64(userPrincipalAggressiveKey(caller), 0);
+  if (existingPrincipal == 0) {
+    const n = <i32>sGetU64(PARTICIPANT_COUNT, 0);
+    Storage.set(participantKey(n), caller);
+    sSetU64(PARTICIPANT_COUNT, u64(n + 1));
+  }
+
+  // Calculate tickets: 4 tickets per MAS
+  const tickets = amount * AGGRESSIVE_MULTIPLIER;
+
+  const prevPrincipal = sGetU64(userPrincipalAggressiveKey(caller), 0);
+  const prevTickets = sGetU64(userTicketsAggressiveKey(caller), 0);
+  sSetU64(userPrincipalAggressiveKey(caller), prevPrincipal + amount);
+  sSetU64(userTicketsAggressiveKey(caller), prevTickets + tickets);
+  Storage.set(userTierKey(caller), 'aggressive');
+
+  sSetU64(AGGRESSIVE_TVL, sGetU64(AGGRESSIVE_TVL, 0) + amount);
+  sSetU64(AGGRESSIVE_TICKETS, sGetU64(AGGRESSIVE_TICKETS, 0) + tickets);
+
+  generateEvent(
+    `depositAggressive:${caller}:${amount.toString()}:${tickets.toString()}`,
+  );
 }
 
-// Frontend helpers
-export function getVaultStats(): StaticArray<u8> {
-  const json = `{
-    "tvl":"${sGetU64(TOTAL_PRINCIPAL).toString()}",
-    "totalShares":"${sGetU64(TOTAL_SHARES).toString()}",
-    "prizePool":"${sGetU64(PRIZE_POOL).toString()}",
-    "participants":"${sGetU64(PARTICIPANT_COUNT).toString()}",
-    "nextDrawPeriod":"${sGetU64(NEXT_DRAW_PERIOD).toString()}",
-    "drawPeriods":"${sGetU64(DRAW_PERIODS).toString()}",
-    "tickPeriods":"${sGetU64(TICK_PERIODS).toString()}",
-    "minPrizeThreshold":"${sGetU64(MIN_PRIZE_THRESHOLD).toString()}",
-    "winnerCount":"${sGetU64(WINNER_COUNT).toString()}",
-    "lastDrawPeriod":"${sGetU64(LAST_DRAW_PERIOD).toString()}",
-    "contractVersion":"${Storage.get(CONTRACT_VERSION) || "1.0.0"}",
-    "proposalCount":"${sGetU64(PROPOSAL_COUNT).toString()}"
-  }`;
-  return arrayBufferToStaticArrayU8(String.UTF8.encode(json));
-}
-
-export function getUserPosition(args: StaticArray<u8>): StaticArray<u8> {
+// WITHDRAW - Supports all tiers
+export function withdraw(args: StaticArray<u8>): void {
   const a = new Args(args);
-  const who = a.nextString().expect("addr");
-  const shares = sGetU64(userSharesKey(who)).toString();
-  const principal = sGetU64(userPrincipalKey(who)).toString();
-  const json = `{"shares":"${shares}","principal":"${principal}","effectiveTickets":"${shares}"}`;
-  return arrayBufferToStaticArrayU8(String.UTF8.encode(json));
+  const amount = a.nextU64().expect('amount');
+  const caller = Context.caller().toString();
+
+  assert(amount > 0, 'zero_amount');
+
+  // Check which tier user is in
+  const tier = Storage.has(userTierKey(caller))
+    ? Storage.get(userTierKey(caller))!
+    : 'conservative';
+
+  let principalKey = '';
+  let ticketsKey = '';
+  let tvlKey = '';
+  let ticketsKey_global = '';
+  let multiplier: u64 = 1;
+
+  if (tier == 'conservative') {
+    principalKey = userPrincipalConservativeKey(caller);
+    ticketsKey = userTicketsConservativeKey(caller);
+    tvlKey = CONSERVATIVE_TVL;
+    ticketsKey_global = CONSERVATIVE_TICKETS;
+    multiplier = CONSERVATIVE_MULTIPLIER;
+  } else if (tier == 'moderate') {
+    principalKey = userPrincipalModerateKey(caller);
+    ticketsKey = userTicketsModerateKey(caller);
+    tvlKey = MODERATE_TVL;
+    ticketsKey_global = MODERATE_TICKETS;
+    multiplier = MODERATE_MULTIPLIER;
+  } else {
+    principalKey = userPrincipalAggressiveKey(caller);
+    ticketsKey = userTicketsAggressiveKey(caller);
+    tvlKey = AGGRESSIVE_TVL;
+    ticketsKey_global = AGGRESSIVE_TICKETS;
+    multiplier = AGGRESSIVE_MULTIPLIER;
+  }
+
+  const principal = sGetU64(principalKey, 0);
+  const tickets = sGetU64(ticketsKey, 0);
+
+  assert(amount <= principal, 'insufficient_principal');
+
+  // Calculate tickets to remove
+  const ticketsToRemove = amount * multiplier;
+  assert(ticketsToRemove <= tickets, 'insufficient_tickets');
+
+  // Update user balances
+  sSetU64(principalKey, principal - amount);
+  sSetU64(ticketsKey, tickets - ticketsToRemove);
+
+  // Update global totals
+  sSetU64(tvlKey, sGetU64(tvlKey, 0) - amount);
+  sSetU64(ticketsKey_global, sGetU64(ticketsKey_global, 0) - ticketsToRemove);
+
+  transferCoins(new Address(caller), amount);
+  generateEvent(`withdraw:${caller}:${amount.toString()}:${tier}`);
 }
 
-// Get winners history
-export function getWinners(args: StaticArray<u8>): StaticArray<u8> {
-  const a = new Args(args);
-  const start = a.nextU64().expect("start_index");
-  const limit = a.nextU64().expect("limit");
-  
-  const winnerCount = sGetU64(WINNER_COUNT);
-  let winners = "[";
-  let count = 0;
-  
-  for (let i = i32(start); i < i32(winnerCount) && u64(count) < limit; i++) {
-    if (count > 0) winners += ",";
-    const winnerData = Storage.get(winnerKey(i)) || "";
-    const parts = winnerData.split(":");
-    if (parts.length >= 4) {
-      winners += `{"period":"${parts[0]}","winner":"${parts[1]}","prize":"${parts[2]}","seed":"${parts[3]}"}`;
-      count++;
+// TICK - Autonomous execution
+export function tick(): void {
+  const nowP = Context.currentPeriod();
+  const nextDraw = sGetU64(NEXT_DRAW_PERIOD);
+  const tickP = sGetU64(TICK_PERIODS);
+
+  if (nowP >= nextDraw) {
+    const drawResult = enhancedRunDraw();
+    if (drawResult) {
+      const drawP = sGetU64(DRAW_PERIODS);
+      sSetU64(NEXT_DRAW_PERIOD, nowP + drawP);
     }
   }
-  
-  winners += "]";
-  return arrayBufferToStaticArrayU8(String.UTF8.encode(winners));
+
+  scheduleTick(nowP + tickP);
+  generateEvent(`tick:${nowP.toString()}`);
 }
 
-// Enhanced runDraw with fair RNG and proper edge case handling  
+// MANUAL DRAW - For testing
+export function manualDraw(): void {
+  const drawResult = enhancedRunDraw();
+  if (drawResult) {
+    const nowP = Context.currentPeriod();
+    const drawP = sGetU64(DRAW_PERIODS);
+    sSetU64(NEXT_DRAW_PERIOD, nowP + drawP);
+  }
+}
+
+// ENHANCED DRAW - Ticket-based weighted selection
 function enhancedRunDraw(): bool {
   const prize = sGetU64(PRIZE_POOL);
-  const total = sGetU64(TOTAL_SHARES);
+  const conservativeTickets = sGetU64(CONSERVATIVE_TICKETS);
+  const moderateTickets = sGetU64(MODERATE_TICKETS);
+  const aggressiveTickets = sGetU64(AGGRESSIVE_TICKETS);
+  const totalTickets =
+    conservativeTickets + moderateTickets + aggressiveTickets;
   const cnt = i32(sGetU64(PARTICIPANT_COUNT));
   const minThreshold = sGetU64(MIN_PRIZE_THRESHOLD);
   const nowP = Context.currentPeriod();
-  
-  // Edge cases: skip if conditions not met
+
   if (prize < minThreshold) {
-    generateEvent(`draw_skipped:insufficient_prize:${prize.toString()}:${minThreshold.toString()}`);
-    return false;
-  }
-  
-  if (total == 0 || cnt == 0) {
-    generateEvent(`draw_skipped:no_participants:${cnt.toString()}:${total.toString()}`);
+    generateEvent(`draw_skipped:insufficient_prize:${prize.toString()}`);
     return false;
   }
 
-  // Generate fair seed using multi-block entropy
+  if (totalTickets == 0 || cnt == 0) {
+    generateEvent(`draw_skipped:no_participants`);
+    return false;
+  }
+
+  // Generate fair seed and select winning ticket
   const seed = generateFairSeed();
-  const target = seed % total;
-  
-  // Log seed components for auditability
-  generateEvent(`draw_entropy:${nowP.toString()}:${seed.toString()}:${target.toString()}:${total.toString()}`);
+  const target = seed % totalTickets;
 
-  // Select winner using deterministic ticket selection
+  generateEvent(
+    `draw_entropy:${seed.toString()}:target=${target.toString()}:total=${totalTickets.toString()}`,
+  );
+
+  // Find winner by iterating through participants and their tickets
   let cumul: u64 = 0;
-  let winner = "";
-  
+  let winner = '';
+
   for (let i = 0; i < cnt; i++) {
     const addr = Storage.get(participantKey(i))!;
-    const sh = sGetU64(userSharesKey(addr));
-    cumul += sh;
-    if (cumul > target) { 
-      winner = addr; 
-      break; 
+
+    // Get user's total tickets across all tiers
+    const userConservative = sGetU64(userTicketsConservativeKey(addr), 0);
+    const userModerate = sGetU64(userTicketsModerateKey(addr), 0);
+    const userAggressive = sGetU64(userTicketsAggressiveKey(addr), 0);
+    const userTotalTickets = userConservative + userModerate + userAggressive;
+
+    cumul += userTotalTickets;
+    if (cumul > target) {
+      winner = addr;
+      break;
     }
   }
-  
+
   if (winner.length == 0) {
-    generateEvent(`draw_failed:no_winner_selected:${target.toString()}`);
+    generateEvent(`draw_failed:no_winner_selected`);
     return false;
   }
 
-  // Record winner in history
+  // Record winner
   const winnerCount = sGetU64(WINNER_COUNT);
   const winnerData = `${nowP.toString()}:${winner}:${prize.toString()}:${seed.toString()}`;
   Storage.set(winnerKey(i32(winnerCount)), winnerData);
   sSetU64(WINNER_COUNT, winnerCount + 1);
   sSetU64(LAST_DRAW_PERIOD, nowP);
 
-  // Transfer prize and reset pool
+  // Transfer full prize pool to winner
   transferCoins(new Address(winner), prize);
   sSetU64(PRIZE_POOL, 0);
-  
-  // Emit comprehensive draw event
-  generateEvent(`draw:${nowP.toString()}:${winner}:${prize.toString()}:${seed.toString()}`);
-  
+
+  generateEvent(
+    `draw:${nowP.toString()}:${winner}:${prize.toString()}:${seed.toString()}`,
+  );
   return true;
 }
 
-// Governance: Create proposal
-export function createProposal(args: StaticArray<u8>): void {
-  const a = new Args(args);
-  const proposalType = a.nextString().expect("proposal_type"); // "min_prize" or "draw_periods"
-  const newValue = a.nextU64().expect("new_value");
-  const caller = Context.caller().toString();
-  
-  // Require minimum shares to create proposal
-  const callerShares = sGetU64(userSharesKey(caller));
-  const totalShares = sGetU64(TOTAL_SHARES);
-  assert(callerShares > 0, "no_shares");
-  assert(callerShares >= totalShares / 100, "insufficient_shares"); // 1% minimum
-  
-  const proposalCount = sGetU64(PROPOSAL_COUNT);
-  const nowP = Context.currentPeriod();
-  const votingEnd = nowP + sGetU64(GOVERNANCE_DELAY);
-  
-  const proposalData = `${proposalType}:${newValue.toString()}:${caller}:${nowP.toString()}:${votingEnd.toString()}:0:0`; // type:value:proposer:start:end:yes:no
-  Storage.set(proposalKey(i32(proposalCount)), proposalData);
-  sSetU64(PROPOSAL_COUNT, proposalCount + 1);
-  
-  generateEvent(`proposal_created:${proposalCount.toString()}:${proposalType}:${newValue.toString()}:${caller}`);
+// GETTER FUNCTIONS
+
+export function getTVL(): StaticArray<u8> {
+  const total =
+    sGetU64(CONSERVATIVE_TVL) + sGetU64(MODERATE_TVL) + sGetU64(AGGRESSIVE_TVL);
+  return new Args().add(total).serialize();
 }
 
-// Governance: Vote on proposal
-export function voteOnProposal(args: StaticArray<u8>): void {
-  const a = new Args(args);
-  const proposalId = a.nextU64().expect("proposal_id");
-  const support = a.nextBool().expect("support"); // true = yes, false = no
-  const caller = Context.caller().toString();
-  
-  const callerShares = sGetU64(userSharesKey(caller));
-  assert(callerShares > 0, "no_shares");
-  
-  const proposalData = Storage.get(proposalKey(i32(proposalId)));
-  assert(proposalData != null, "proposal_not_found");
-  
-  const parts = proposalData!.split(":");
-  assert(parts.length >= 7, "invalid_proposal_data");
-  
-  const votingEnd = u64(parseInt(parts[4]));
-  const nowP = Context.currentPeriod();
-  assert(nowP <= votingEnd, "voting_ended");
-  
-  // Check if already voted
-  const voteKey = `vote:${proposalId.toString()}:${caller}`;
-  assert(!sHas(voteKey), "already_voted");
-  
-  // Record vote
-  Storage.set(voteKey, support ? "yes" : "no");
-  
-  // Update totals
-  let yesVotes = u64(parseInt(parts[5]));
-  let noVotes = u64(parseInt(parts[6]));
-  
-  if (support) {
-    yesVotes += callerShares;
-  } else {
-    noVotes += callerShares;
-  }
-  
-  const newProposalData = `${parts[0]}:${parts[1]}:${parts[2]}:${parts[3]}:${parts[4]}:${yesVotes.toString()}:${noVotes.toString()}`;
-  Storage.set(proposalKey(i32(proposalId)), newProposalData);
-  
-  generateEvent(`vote_cast:${proposalId.toString()}:${caller}:${support ? "yes" : "no"}:${callerShares.toString()}`);
+export function getConservativeTVL(): StaticArray<u8> {
+  return new Args().add(sGetU64(CONSERVATIVE_TVL)).serialize();
 }
 
-// Governance: Execute proposal
-export function executeProposal(args: StaticArray<u8>): void {
-  const a = new Args(args);
-  const proposalId = a.nextU64().expect("proposal_id");
-  
-  const proposalData = Storage.get(proposalKey(i32(proposalId)));
-  assert(proposalData != null, "proposal_not_found");
-  
-  const parts = proposalData!.split(":");
-  assert(parts.length >= 7, "invalid_proposal_data");
-  
-  const proposalType = parts[0];
-  const newValue = u64(parseInt(parts[1]));
-  const votingEnd = u64(parseInt(parts[4]));
-  const yesVotes = u64(parseInt(parts[5]));
-  const noVotes = u64(parseInt(parts[6]));
-  const nowP = Context.currentPeriod();
-  
-  assert(nowP > votingEnd, "voting_not_ended");
-  assert(yesVotes > noVotes, "proposal_rejected");
-  
-  const totalShares = sGetU64(TOTAL_SHARES);
-  assert(yesVotes >= totalShares / 2, "insufficient_quorum"); // 50% quorum
-  
-  // Execute based on proposal type
-  if (proposalType == "min_prize") {
-    sSetU64(MIN_PRIZE_THRESHOLD, newValue);
-    generateEvent(`proposal_executed:${proposalId.toString()}:min_prize:${newValue.toString()}`);
-  } else if (proposalType == "draw_periods") {
-    sSetU64(DRAW_PERIODS, newValue);
-    generateEvent(`proposal_executed:${proposalId.toString()}:draw_periods:${newValue.toString()}`);
-  } else {
-    assert(false, "unsupported_proposal_type");
-  }
+export function getModerateTVL(): StaticArray<u8> {
+  return new Args().add(sGetU64(MODERATE_TVL)).serialize();
 }
 
-// Get proposal details
-export function getProposal(args: StaticArray<u8>): StaticArray<u8> {
+export function getAggressiveTVL(): StaticArray<u8> {
+  return new Args().add(sGetU64(AGGRESSIVE_TVL)).serialize();
+}
+
+export function getTotalTickets(): StaticArray<u8> {
+  const total =
+    sGetU64(CONSERVATIVE_TICKETS) +
+    sGetU64(MODERATE_TICKETS) +
+    sGetU64(AGGRESSIVE_TICKETS);
+  return new Args().add(total).serialize();
+}
+
+export function getConservativeTickets(): StaticArray<u8> {
+  return new Args().add(sGetU64(CONSERVATIVE_TICKETS)).serialize();
+}
+
+export function getModerateTickets(): StaticArray<u8> {
+  return new Args().add(sGetU64(MODERATE_TICKETS)).serialize();
+}
+
+export function getAggressiveTickets(): StaticArray<u8> {
+  return new Args().add(sGetU64(AGGRESSIVE_TICKETS)).serialize();
+}
+
+export function getPrizePool(): StaticArray<u8> {
+  return new Args().add(sGetU64(PRIZE_POOL)).serialize();
+}
+
+export function getParticipantCount(): StaticArray<u8> {
+  return new Args().add(sGetU64(PARTICIPANT_COUNT)).serialize();
+}
+
+export function getNextDrawPeriod(): StaticArray<u8> {
+  return new Args().add(sGetU64(NEXT_DRAW_PERIOD)).serialize();
+}
+
+export function getUserPrincipal(args: StaticArray<u8>): StaticArray<u8> {
   const a = new Args(args);
-  const proposalId = a.nextU64().expect("proposal_id");
-  
-  const proposalData = Storage.get(proposalKey(i32(proposalId)));
-  if (!proposalData) {
-    const json = `{"error":"proposal_not_found"}`;
-    return arrayBufferToStaticArrayU8(String.UTF8.encode(json));
-  }
-  
-  const parts = proposalData!.split(":");
-  if (parts.length < 7) {
-    const json = `{"error":"invalid_proposal_data"}`;
-    return arrayBufferToStaticArrayU8(String.UTF8.encode(json));
-  }
-  
+  const addr = a.nextString().expect('address');
+  const conservative = sGetU64(userPrincipalConservativeKey(addr), 0);
+  const moderate = sGetU64(userPrincipalModerateKey(addr), 0);
+  const aggressive = sGetU64(userPrincipalAggressiveKey(addr), 0);
+  const total = conservative + moderate + aggressive;
+  return new Args().add(total).serialize();
+}
+
+export function getUserTickets(args: StaticArray<u8>): StaticArray<u8> {
+  const a = new Args(args);
+  const addr = a.nextString().expect('address');
+  const conservative = sGetU64(userTicketsConservativeKey(addr), 0);
+  const moderate = sGetU64(userTicketsModerateKey(addr), 0);
+  const aggressive = sGetU64(userTicketsAggressiveKey(addr), 0);
+  const total = conservative + moderate + aggressive;
+  return new Args().add(total).serialize();
+}
+
+export function getUserTier(args: StaticArray<u8>): StaticArray<u8> {
+  const a = new Args(args);
+  const addr = a.nextString().expect('address');
+  const tier = Storage.has(userTierKey(addr))
+    ? Storage.get(userTierKey(addr))!
+    : 'none';
+  return new Args().add(tier).serialize();
+}
+
+export function getWinnerCount(): StaticArray<u8> {
+  return new Args().add(sGetU64(WINNER_COUNT)).serialize();
+}
+
+export function getWinner(args: StaticArray<u8>): StaticArray<u8> {
+  const a = new Args(args);
+  const idx = a.nextU64().expect('index');
+  const data = Storage.has(winnerKey(i32(idx)))
+    ? Storage.get(winnerKey(i32(idx)))!
+    : '';
+  return new Args().add(data).serialize();
+}
+
+// Frontend compatibility function - returns JSON
+export function getVaultStats(): StaticArray<u8> {
+  const tvl =
+    sGetU64(CONSERVATIVE_TVL) + sGetU64(MODERATE_TVL) + sGetU64(AGGRESSIVE_TVL);
+  const tickets =
+    sGetU64(CONSERVATIVE_TICKETS) +
+    sGetU64(MODERATE_TICKETS) +
+    sGetU64(AGGRESSIVE_TICKETS);
+  const prize = sGetU64(PRIZE_POOL);
+  const participants = sGetU64(PARTICIPANT_COUNT);
+  const nextDraw = sGetU64(NEXT_DRAW_PERIOD);
+  const lastDraw = sGetU64(LAST_DRAW_PERIOD);
+  const winnerCount = sGetU64(WINNER_COUNT);
+
   const json = `{
-    "id":"${proposalId.toString()}",
-    "type":"${parts[0]}",
-    "value":"${parts[1]}",
-    "proposer":"${parts[2]}",
-    "startPeriod":"${parts[3]}",
-    "endPeriod":"${parts[4]}",
-    "yesVotes":"${parts[5]}",
-    "noVotes":"${parts[6]}"
+    "tvl":${tvl.toString()},
+    "totalShares":${tickets.toString()},
+    "prizePool":${prize.toString()},
+    "participants":${participants.toString()},
+    "nextDrawPeriod":${nextDraw.toString()},
+    "lastDrawPeriod":${lastDraw.toString()},
+    "winnerCount":${winnerCount.toString()},
+    "drawPeriods":"5400",
+    "tickPeriods":"225",
+    "minPrizeThreshold":"100000000",
+    "contractVersion":"2.0-tiers",
+    "proposalCount":"0",
+    "conservativeTVL":${sGetU64(CONSERVATIVE_TVL).toString()},
+    "moderateTVL":${sGetU64(MODERATE_TVL).toString()},
+    "aggressiveTVL":${sGetU64(AGGRESSIVE_TVL).toString()},
+    "conservativeTickets":${sGetU64(CONSERVATIVE_TICKETS).toString()},
+    "moderateTickets":${sGetU64(MODERATE_TICKETS).toString()},
+    "aggressiveTickets":${sGetU64(AGGRESSIVE_TICKETS).toString()}
   }`;
-  return arrayBufferToStaticArrayU8(String.UTF8.encode(json));
+
+  return stringToBytes(json);
+}
+
+export function getUserPosition(args: StaticArray<u8>): StaticArray<u8> {
+  const argsObj = new Args(args);
+  const userAddr = argsObj.nextString().unwrap();
+
+  // Get user's tier
+  const tierKey = userTierKey(userAddr);
+  const hasTier = Storage.has(tierKey);
+  let tier = '0';
+  let principal: u64 = 0;
+  let tickets: u64 = 0;
+
+  if (hasTier) {
+    tier = Storage.get(tierKey);
+
+    // Get principal and tickets based on tier
+    if (tier == 'conservative') {
+      principal = sGetU64(userPrincipalConservativeKey(userAddr), 0);
+      tickets = sGetU64(userTicketsConservativeKey(userAddr), 0);
+    } else if (tier == 'moderate') {
+      principal = sGetU64(userPrincipalModerateKey(userAddr), 0);
+      tickets = sGetU64(userTicketsModerateKey(userAddr), 0);
+    } else if (tier == 'aggressive') {
+      principal = sGetU64(userPrincipalAggressiveKey(userAddr), 0);
+      tickets = sGetU64(userTicketsAggressiveKey(userAddr), 0);
+    }
+  }
+
+  const json = `{
+    "shares":${tickets.toString()},
+    "principal":${principal.toString()},
+    "tier":"${tier}",
+    "hasDeposit":${principal > 0 ? 'true' : 'false'}
+  }`;
+
+  return stringToBytes(json);
+}
+
+export function getWinners(args: StaticArray<u8>): StaticArray<u8> {
+  const argsObj = new Args(args);
+  const startIdx = argsObj.nextU64().unwrap();
+  const count = argsObj.nextU64().unwrap();
+
+  const totalWinners = sGetU64(WINNER_COUNT, 0);
+  const endIdx =
+    startIdx + count > totalWinners ? totalWinners : startIdx + count;
+
+  let winners: string[] = [];
+
+  for (let i = startIdx; i < endIdx; i++) {
+    const winnerData = Storage.get(winnerKey(i32(i)));
+
+    if (winnerData.length > 0) {
+      // Parse "period:address:prize:seed"
+      const parts = winnerData.split(':');
+      if (parts.length >= 4) {
+        const period = parts[0];
+        const address = parts[1];
+        const prize = parts[2];
+        const seed = parts[3];
+
+        const winnerJson = `{
+          "period":"${period}",
+          "address":"${address}",
+          "prize":"${prize}",
+          "seed":"${seed}",
+          "timestamp":${period}
+        }`;
+
+        winners.push(winnerJson);
+      }
+    }
+  }
+
+  const json = '[' + winners.join(',') + ']';
+  return stringToBytes(json);
+}
+
+function stringToBytes(s: string): StaticArray<u8> {
+  const encoder = String.UTF8.encode(s);
+  const arr = new StaticArray<u8>(encoder.byteLength);
+  memory.copy(
+    changetype<usize>(arr),
+    changetype<usize>(encoder),
+    encoder.byteLength,
+  );
+  return arr;
+}
+
+function bytesToStringHelper(bytes: StaticArray<u8>): string {
+  let result = '';
+  for (let i = 0; i < bytes.length; i++) {
+    result += String.fromCharCode(bytes[i]);
+  }
+  return result;
 }

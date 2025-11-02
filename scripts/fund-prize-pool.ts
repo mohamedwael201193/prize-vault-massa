@@ -38,8 +38,8 @@ async function fundPrizePool(amount: string = "50") {
     console.log("Funding from address:", account.address.toString());
 
     // Get contract address
-    const contractAddress = getContractAddress();
-    console.log("Contract address:", contractAddress);
+    const vaultAddr = getContractAddress();
+    console.log("Contract address:", vaultAddr);
   const amountMAS = process.argv[2] ? parseFloat(process.argv[2]) : 0.5;
   const amountNanoMAS = BigInt(Math.floor(amountMAS * 1e9));
 

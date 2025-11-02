@@ -1,27 +1,23 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useVaultSync } from '@/hooks/useVaultSync';
-import { useWallet } from '@/hooks/useWallet';
-import { bytesToString } from '@/lib/bytes';
-import { Args, SmartContract } from '@massalabs/massa-web3';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useVaultSync } from "@/hooks/useVaultSync";
+import { useWallet } from "@/hooks/useWallet";
+import { bytesToString } from "@/lib/bytes";
+import { Args, SmartContract } from "@massalabs/massa-web3";
+import { motion } from "framer-motion";
 import {
   Calendar,
   Check,
   Coins,
   Copy,
-  Download,
   ExternalLink,
-  Hash,
   Search,
-  Shield,
-  Trophy
+  Trophy,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from "react";
 
 interface Winner {
   period: string;
@@ -37,40 +33,44 @@ const ITEMS_PER_PAGE = 10;
 export default function Winners() {
   const [winners, setWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'period' | 'prize'>('period');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [copiedAddress, setCopiedAddress] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"period" | "prize">("period");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [copiedAddress, setCopiedAddress] = useState<string>("");
   const wallet = useWallet();
   const { activeVault } = useVaultSync();
-  const navigate = useNavigate();
 
   // Fetch winners from contract
   const fetchWinners = async () => {
     if (!wallet.connected) return;
-    
+
     try {
       setLoading(true);
-      setError('');
-      
+      setError("");
+
       const vaultAddr = activeVault.address;
       const readerProv = wallet.getPublicProvider?.();
-      const sc = readerProv 
-        ? new SmartContract(readerProv as any, vaultAddr) 
+      const sc = readerProv
+        ? new SmartContract(readerProv as any, vaultAddr)
         : wallet.getContract(vaultAddr);
 
       // Get total winner count first
       const statsArgs = new Args();
       let stats, totalWinners;
-      
+
       try {
-        const statsRaw = await sc.read('getVaultStats', statsArgs);
-        stats = JSON.parse(bytesToString(statsRaw));
-        totalWinners = parseInt(stats.winnerCount || '0');
+        const statsRaw = await sc.read("getVaultStats", statsArgs);
+        console.log("📊 Stats raw response:", statsRaw);
+
+        const statsString = bytesToString(statsRaw);
+        console.log("📊 Stats decoded:", statsString.substring(0, 100));
+        stats = JSON.parse(statsString);
+        totalWinners = parseInt(stats.winnerCount || "0");
+        console.log("✅ Total winners found:", totalWinners);
       } catch (error) {
-        console.log('Could not fetch vault stats, using demo data');
+        console.error("❌ Could not fetch vault stats:", error);
         totalWinners = 0;
       }
 
@@ -80,59 +80,40 @@ export default function Winners() {
         try {
           // Fetch real winners from contract
           const args = new Args()
-            .addU64(BigInt(0))  // start index
+            .addU64(BigInt(0)) // start index
             .addU64(BigInt(totalWinners)); // fetch ALL winners (no limit)
 
-          const rawWinners = await sc.read('getWinners', args);
-          const winnersData: Winner[] = JSON.parse(bytesToString(rawWinners)) || [];
-          
-          finalWinners = winnersData.map((winner, index) => ({
-            ...winner,
-            prizeAsMas: Number(winner.prize) / 1e9,
-            timestamp: Date.now() - (index * 24 * 60 * 60 * 1000), // Mock timestamps for now
-          }));
-          
-          console.log(`✅ Loaded ${finalWinners.length} real winners from contract`);
-        } catch (error) {
-          console.error('Failed to fetch real winners:', error);
-        }
-      }
+          const rawWinners = await sc.read("getWinners", args);
+          console.log("🏆 Winners raw response:", rawWinners);
 
-      // If no real winners, show demo data for better presentation
-      if (finalWinners.length === 0) {
-        finalWinners = [
-          {
-            period: "12345",
-            winner: "AU1kwtk5zM8T9jR3cN7vL2sP4uQ8xW6bY3aH9mK2sJ4wE7rT",
-            prize: "5250000000",
-            seed: "a7f8d9e2c4b1f5a3e8d2c9b6f1a4e7d0c3b8f5a2e9d6c1b4",
-            prizeAsMas: 5.25,
-            timestamp: Date.now() - 24 * 60 * 60 * 1000
-          },
-          {
-            period: "12344",
-            winner: "AU1xyz9mN8P2qR5tV7sL4pW6bY3aH9kJ2wE7rT5zM8N1cQ4u",
-            prize: "4800000000",
-            seed: "b8e9c5f3d6a2e7b4c1f8d9e2a5b6c3f4e7a8b9c2d5e6f1a3",
-            prizeAsMas: 4.80,
-            timestamp: Date.now() - 48 * 60 * 60 * 1000
-          },
-          {
-            period: "12343",
-            winner: "AU1abc3dE4fG5hI6jK7lM8nO9pQ2rS1tU4vW6xY8zA2bC5d",
-            prize: "6100000000",
-            seed: "c9f2e5a8b1d4e7f0a3b6c9d2e5f8a1b4c7d0e3f6a9b2c5",
-            prizeAsMas: 6.10,
-            timestamp: Date.now() - 72 * 60 * 60 * 1000
-          }
-        ];
-        console.log('📊 Using demo data for better presentation');
+          const winnersString = bytesToString(rawWinners);
+          console.log("🏆 Winners decoded:", winnersString);
+          const winnersData: any[] = JSON.parse(winnersString) || [];
+
+          finalWinners = winnersData.map((w) => ({
+            period: w.period || "",
+            winner: w.address || w.winner || "", // Handle both 'address' and 'winner' fields
+            prize: w.prize || "0",
+            seed: w.seed || "",
+            prizeAsMas: Number(w.prize) / 1e9,
+            timestamp: w.timestamp || Number(w.period) || Date.now(),
+          }));
+
+          console.log(
+            `✅ Loaded ${finalWinners.length} real winners from contract`
+          );
+        } catch (error) {
+          console.error("Failed to fetch real winners:", error);
+          setError("Unable to load winners from blockchain");
+        }
+      } else {
+        console.log("ℹ️ No winners found yet - Wave 4 competition ongoing");
       }
 
       setWinners(finalWinners);
     } catch (err) {
-      console.error('Failed to fetch winners:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load winners');
+      console.error("Failed to fetch winners:", err);
+      setError(err instanceof Error ? err.message : "Failed to load winners");
     } finally {
       setLoading(false);
     }
@@ -145,77 +126,54 @@ export default function Winners() {
   // Auto-refresh winners every 30 seconds to show new draws
   useEffect(() => {
     if (!wallet.connected) return;
-    
+
     const interval = setInterval(() => {
-      console.log('[Winners] Auto-refreshing winners data...');
+      console.log("[Winners] Auto-refreshing winners data...");
       fetchWinners();
     }, 30000); // Refresh every 30 seconds
-    
+
     return () => clearInterval(interval);
   }, [wallet.connected, activeVault.address]);
 
   // Filter and sort winners
   const filteredAndSortedWinners = useMemo(() => {
-    let filtered = winners.filter(winner =>
-      winner.winner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      winner.period.includes(searchTerm) ||
-      winner.seed.includes(searchTerm)
+    let filtered = winners.filter(
+      (winner) =>
+        winner.winner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        winner.period.includes(searchTerm) ||
+        winner.seed.includes(searchTerm)
     );
 
     filtered.sort((a, b) => {
       let comparison = 0;
-      if (sortBy === 'period') {
+      if (sortBy === "period") {
         comparison = parseInt(a.period) - parseInt(b.period);
-      } else if (sortBy === 'prize') {
+      } else if (sortBy === "prize") {
         comparison = a.prizeAsMas - b.prizeAsMas;
       }
-      return sortOrder === 'desc' ? -comparison : comparison;
+      return sortOrder === "desc" ? -comparison : comparison;
     });
 
     return filtered;
   }, [winners, searchTerm, sortBy, sortOrder]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredAndSortedWinners.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(
+    filteredAndSortedWinners.length / ITEMS_PER_PAGE
+  );
   const paginatedWinners = filteredAndSortedWinners.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-
-  // CSV Export
-  const exportToCSV = () => {
-    const headers = ['Period', 'Winner Address', 'Prize (MAS)', 'Prize (nanoMAS)', 'Random Seed', 'Date'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredAndSortedWinners.map(winner => [
-        winner.period,
-        winner.winner,
-        winner.prizeAsMas.toFixed(9),
-        winner.prize,
-        winner.seed,
-        winner.timestamp ? new Date(winner.timestamp).toISOString() : 'N/A'
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `autoprize-vault-winners-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   // Copy address to clipboard
   const copyAddress = async (address: string) => {
     try {
       await navigator.clipboard.writeText(address);
       setCopiedAddress(address);
-      setTimeout(() => setCopiedAddress(''), 2000);
+      setTimeout(() => setCopiedAddress(""), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err);
     }
   };
 
@@ -224,263 +182,300 @@ export default function Winners() {
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  // Format seed for display
-  const formatSeed = (seed: string) => {
-    return `${seed.slice(0, 8)}...`;
-  };
-
   return (
-    <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Trophy className="text-yellow-500" />
-                Prize Winners
-              </h1>
-              <p className="text-muted-foreground">
-                Historical record of all AutoPrize Vault draws
-              </p>
-            </div>
-            <Button
-              onClick={exportToCSV}
-              variant="outline"
-              disabled={filteredAndSortedWinners.length === 0}
-              className="flex items-center gap-2"
-            >
-              <Download size={16} />
-              Export CSV
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+      {/* Animated Background Orbs */}
+      <motion.div
+        className="absolute top-20 -left-40 w-80 h-80 bg-yellow-500/20 rounded-full blur-3xl"
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className="absolute bottom-20 -right-40 w-80 h-80 bg-green-500/20 rounded-full blur-3xl"
+        animate={{
+          scale: [1.2, 1, 1.2],
+          opacity: [0.5, 0.3, 0.5],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2">
-                  <Trophy className="text-yellow-500" size={20} />
-                  <div>
-                    <p className="text-2xl font-bold">{winners.length}</p>
-                    <p className="text-sm text-muted-foreground">Total Draws</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2">
-                  <Coins className="text-green-500" size={20} />
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {winners.reduce((sum, w) => sum + w.prizeAsMas, 0).toFixed(2)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Total Prizes (MAS)</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2">
-                  <Calendar className="text-blue-500" size={20} />
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {winners.length > 0 ? Math.max(...winners.map(w => parseInt(w.period))) : 0}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Latest Period</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="container mx-auto px-4 py-20 relative z-10">
+        {/* Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <motion.div
+            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-600 mb-6"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <Trophy className="h-10 w-10 text-white" />
+          </motion.div>
 
-          {/* Filters and Search */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Filter & Search</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by address, period, or seed..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
+            Prize Winners
+          </h1>
+
+          <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+            Complete history of all AutoPrize Vault drawings with full
+            transparency and verifiability
+          </p>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="grid md:grid-cols-3 gap-8 mb-12"
+        >
+          <motion.div whileHover={{ y: -5 }}>
+            <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600">
+                    <Trophy className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-white">
+                      {winners.length}
+                    </div>
+                    <div className="text-slate-400">Total Draws</div>
                   </div>
                 </div>
-                <Select value={sortBy} onValueChange={(value: 'period' | 'prize') => setSortBy(value)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="period">Sort by Period</SelectItem>
-                    <SelectItem value="prize">Sort by Prize</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="min-w-[100px]"
-                >
-                  {sortOrder === 'desc' ? '↓ Desc' : '↑ Asc'}
-                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ y: -5 }}>
+            <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
+                    <Coins className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-white">
+                      {winners
+                        .reduce((sum, w) => sum + w.prizeAsMas, 0)
+                        .toFixed(2)}
+                    </div>
+                    <div className="text-slate-400">Total Prizes (MAS)</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ y: -5 }}>
+            <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600">
+                    <Calendar className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-white">
+                      {winners.length > 0
+                        ? Math.max(...winners.map((w) => parseInt(w.period)))
+                        : 0}
+                    </div>
+                    <div className="text-slate-400">Latest Period</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+
+        {/* Search */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="mb-8"
+        >
+          <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
+            <CardContent className="p-6">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Input
+                  placeholder="Search by address, period, or seed..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-12 h-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-400"
+                />
               </div>
             </CardContent>
           </Card>
+        </motion.div>
 
-          {/* Winners List */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Winners History</span>
-                <Badge variant="secondary">
-                  {filteredAndSortedWinners.length} results
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* Winners List */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
+            <CardContent className="p-8">
               {loading ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <Skeleton className="h-10 w-10 rounded" />
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 p-6 border border-slate-800 rounded-lg"
+                    >
+                      <Skeleton className="h-12 w-12 rounded" />
                       <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-32" />
                         <Skeleton className="h-3 w-48" />
                       </div>
-                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-6 w-24" />
                     </div>
                   ))}
                 </div>
               ) : error ? (
-                <div className="text-center py-8">
-                  <p className="text-red-500 mb-4">{error}</p>
+                <div className="text-center py-12">
+                  <p className="text-red-400 mb-4">{error}</p>
                   <Button onClick={fetchWinners} variant="outline">
                     Retry
                   </Button>
                 </div>
               ) : paginatedWinners.length === 0 ? (
-                <div className="text-center py-8">
-                  <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-4">
-                    {winners.length === 0 ? 'No winners yet. Be the first!' : 'No results found.'}
+                <div className="text-center py-12">
+                  <Trophy className="mx-auto h-16 w-16 text-slate-600 mb-4" />
+                  <p className="text-slate-400 text-lg mb-4">
+                    {winners.length === 0
+                      ? "🎯 Wave 4 competition is live! No winners declared yet."
+                      : "No results found."}
                   </p>
+                  {winners.length === 0 && !searchTerm && (
+                    <p className="text-slate-500 text-sm mb-4">
+                      Deposit into the vault to participate in the prize draw
+                    </p>
+                  )}
                   {searchTerm && (
-                    <Button onClick={() => setSearchTerm('')} variant="outline">
+                    <Button onClick={() => setSearchTerm("")} variant="outline">
                       Clear Search
                     </Button>
                   )}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {paginatedWinners.map((winner, index) => (
-                    <div
+                    <motion.div
                       key={`${winner.period}-${index}`}
-                      className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ x: 5 }}
+                      className="flex items-center gap-6 p-6 border border-slate-800 rounded-lg hover:bg-slate-800/50 transition-colors"
                     >
-                      {/* Period Badge */}
-                      <Badge variant="outline" className="min-w-[80px] justify-center">
+                      {/* Period */}
+                      <Badge className="min-w-[100px] justify-center bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
                         Period {winner.period}
                       </Badge>
 
                       {/* Winner Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-sm text-white">
                             {truncateAddress(winner.winner)}
                           </span>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => copyAddress(winner.winner)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 hover:bg-slate-700"
                           >
                             {copiedAddress === winner.winner ? (
-                              <Check size={12} className="text-green-500" />
+                              <Check size={14} className="text-green-400" />
                             ) : (
-                              <Copy size={12} />
+                              <Copy size={14} className="text-slate-400" />
                             )}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(`https://explorer.massa.net/address/${winner.winner}`, '_blank')}
-                            className="h-6 w-6 p-0"
+                            onClick={() =>
+                              window.open(
+                                `https://explorer.massa.net/address/${winner.winner}`,
+                                "_blank"
+                              )
+                            }
+                            className="h-6 w-6 p-0 hover:bg-slate-700"
                           >
-                            <ExternalLink size={12} />
+                            <ExternalLink
+                              size={14}
+                              className="text-slate-400"
+                            />
                           </Button>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                          <span className="flex items-center gap-1">
-                            <Hash size={10} />
-                            Seed: {formatSeed(winner.seed)}
-                          </span>
-                          {winner.timestamp && (
-                            <span className="flex items-center gap-1">
-                              <Calendar size={10} />
-                              {new Date(winner.timestamp).toLocaleDateString()}
-                            </span>
-                          )}
+                        <div className="text-xs text-slate-500">
+                          {winner.timestamp &&
+                            new Date(winner.timestamp).toLocaleDateString()}
                         </div>
                       </div>
 
-                      {/* Prize Amount */}
+                      {/* Prize */}
                       <div className="text-right">
-                        <div className="font-bold text-lg text-green-600">
+                        <div className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                           {winner.prizeAsMas.toFixed(4)} MAS
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {parseInt(winner.prize).toLocaleString()} nano
-                        </div>
                       </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => navigate(`/fairness?drawId=${winner.period}&seed=${winner.seed}`)}
-                        >
-                          <Shield size={12} className="mr-1" />
-                          View Proof
-                        </Button>
-                      </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedWinners.length)} of{' '}
-                    {filteredAndSortedWinners.length} results
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-800">
+                  <p className="text-sm text-slate-400">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                    {Math.min(
+                      currentPage * ITEMS_PER_PAGE,
+                      filteredAndSortedWinners.length
+                    )}{" "}
+                    of {filteredAndSortedWinners.length} results
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      onClick={() =>
+                        setCurrentPage(Math.max(1, currentPage - 1))
+                      }
                       disabled={currentPage === 1}
+                      className="border-slate-700 hover:bg-slate-800"
                     >
                       Previous
                     </Button>
-                    <span className="text-sm">
+                    <span className="text-sm text-slate-400">
                       Page {currentPage} of {totalPages}
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      onClick={() =>
+                        setCurrentPage(Math.min(totalPages, currentPage + 1))
+                      }
                       disabled={currentPage === totalPages}
+                      className="border-slate-700 hover:bg-slate-800"
                     >
                       Next
                     </Button>
@@ -489,7 +484,8 @@ export default function Winners() {
               )}
             </CardContent>
           </Card>
-        </div>
-    </main>
+        </motion.div>
+      </div>
+    </div>
   );
 }

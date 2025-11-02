@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# 🔒 SECRET FILES - NEVER COMMIT THESE
+# 🔒 CRITICAL: SECRET FILES - NEVER COMMIT THESE
 *.json.secret
 *wallet*
 *secret*
@@ -39,22 +39,61 @@ wallet_devmo*
 .env.local
 .env.production
 .env.development
+.env.test
 SECRET_KEY*
+*.secret.ts
+*.secret.js
+*-secret.*
 
-# 🚫 DEPLOYMENT & CONFIG FILES
+# � Environment & Configuration
+.env*
+!.env.example
 deweb_cli_config*
 *.config.secret
 build-manifest.json
+secrets/
+private-keys/
+wallets/
 
-# 📚 DOCUMENTATION FILES (not essential for hackathon)
+# 📚 DOCUMENTATION FILES (Keep essential ones only)
 *.md
 !README.md
+!README_WAVE4.md
+!SUBMISSION_CHECKLIST.md
 JUDGE_GUIDE.md
-DEWEB_DEPLOYMENT.md
+DEWEB_DEPLOYMENT*.md
 COMPETITIVE_ANALYSIS.md
 deployment-guide.md
 judge-runbook.md
 hackathon-submission.md
+CONTRACT_*.md
+DEMO_*.md
+DEPLOYMENT_*.md
+DEWEB_*.md
+DEX_*.md
+DRAWS_*.md
+FINAL_*.md
+GOVERNANCE_*.md
+HOURLY_*.md
+JUDGE_*.md
+MAINNET_*.md
+MULTI_*.md
+NO_MOCK_*.md
+PHASE*.md
+PROPOSAL_*.md
+READY_*.md
+STRATEGIC_*.md
+SWAP_*.md
+TESTING_*.md
+ULTIMATE_*.md
+WAVE4_*.md
+WINNER_*.md
+WITHDRAW_*.md
+*_COMPLETE.md
+*_FIXED.md
+*_GUIDE.md
+*_READY.md
+*_SUCCESS.md
 
 # 🚀 BUILD & DEPLOYMENT ARTIFACTS
 build/

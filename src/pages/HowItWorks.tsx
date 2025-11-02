@@ -1,95 +1,91 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import {
-    ArrowRight,
-    CheckCircle,
-    Clock,
-    Shield,
-    TrendingUp,
-    Trophy,
-    Wallet,
-    Zap
-} from "lucide-react";
+import { ArrowRight, Clock, Shield, Trophy, Wallet, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const HowItWorks = () => {
-
   const steps = [
     {
       icon: Wallet,
-      title: "Deposit MAS Tokens",
-      description: "Connect your Massa wallet and deposit any amount of MAS tokens into the decentralized vault smart contract. Your principal is cryptographically secured and always withdrawable with zero fees.",
-      details: [
-        "No minimum deposit - start with any amount",
-        "Instant deposits via Massa smart contract",
-        "Non-custodial - you maintain full ownership",
-        "Transparent on-chain transactions"
-      ]
+      title: "1. Deposit MAS",
+      description:
+        "Connect your Massa wallet and deposit any amount of MAS. Your funds are always safe and withdrawable anytime.",
+      gradient: "from-green-500 to-emerald-500",
     },
     {
-      icon: TrendingUp,
-      title: "Earn Yield Automatically", 
-      description: "The vault automatically generates yield through secure, algorithmic strategies optimized for the Massa ecosystem. All yield becomes the community prize pool while your principal remains untouched.",
-      details: [
-        "Smart contract-managed yield generation",
-        "Massa-optimized earning strategies", 
-        "100% transparent algorithmic operations",
-        "Community governance over yield parameters"
-      ]
+      icon: Clock,
+      title: "2. Automatic Draws",
+      description:
+        "Every 7 days, the autonomous smart contract runs a fair draw using blockchain randomness. Zero maintenance required.",
+      gradient: "from-blue-500 to-purple-500",
     },
     {
       icon: Trophy,
-      title: "Win Prizes Weekly",
-      description: "100% of generated yield becomes the prize pool distributed to participants. Winners are selected through Massa's verifiable on-chain randomness every Friday. Your chances are proportional to your deposit size and duration.",
-      details: [
-        "Weekly automated prize draws",
-        "Massa's cryptographically secure randomness",
-        "Deposit-weighted fair distribution",
-        "Community proposals can modify prize schedules"
-      ]
-    }
+      title: "3. Win Prizes",
+      description:
+        "Winners are selected fairly and receive prizes instantly. Your deposit stays safe - only the prize pool is distributed!",
+      gradient: "from-yellow-500 to-orange-500",
+    },
   ];
 
   const features = [
     {
       icon: Shield,
-      title: "No-Loss Guarantee",
-      description: "Your principal deposit is cryptographically protected and never at risk. Only generated yield becomes prizes, ensuring 100% capital preservation."
+      title: "100% No-Loss",
+      description:
+        "Your deposits are never at risk. Withdraw your full amount anytime with no penalties or fees.",
     },
     {
       icon: Zap,
-      title: "Fully Decentralized", 
-      description: "No centralized operators or intermediaries. Smart contracts handle everything autonomously with community governance for protocol upgrades."
+      title: "Fully Autonomous",
+      description:
+        "Draws run automatically every 7 days with $0/month operational cost thanks to Massa's autonomous smart contracts.",
     },
     {
       icon: Clock,
-      title: "Zero-Fee Withdrawals",
-      description: "Withdraw your full principal anytime instantly with zero fees, penalties, or lock-up periods. True liquidity preservation."
-    }
+      title: "Instant Withdrawal",
+      description:
+        "No lock-up periods or waiting. Access your funds immediately whenever you want.",
+    },
   ];
 
   return (
-    <>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Hero Section */}
-      <section className="py-20 border-b border-border/50">
-        <div className="container mx-auto px-4">
+      <section className="relative overflow-hidden py-20">
+        <motion.div
+          className="absolute top-20 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        <div className="relative container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <h1 className="text-4xl font-bold mb-6 sm:text-5xl">
-              How <span className="gradient-text">AutoPrize Vault</span> Works
+            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-300 bg-clip-text text-transparent">
+                How AutoPrize Works
+              </span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              A decentralized, no-loss prize vault built on Massa blockchain with community governance. Three simple steps to start earning prizes while keeping your savings completely safe.
+            <p className="text-2xl text-slate-200 mb-4 font-medium">
+              The revolutionary no-loss prize savings system
             </p>
-            <Badge className="bg-primary/10 text-primary mb-8">
-              Deployed on Massa BuildNet - Fully decentralized & autonomous
-            </Badge>
+            <p className="text-xl text-slate-400">
+              Deposit MAS • Win weekly prizes • Withdraw anytime • Never lose
+              your deposit
+            </p>
           </motion.div>
         </div>
       </section>
@@ -97,74 +93,60 @@ const HowItWorks = () => {
       {/* Steps Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            {steps.map((step, index) => (
-              <motion.div
-                key={step.title}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                viewport={{ once: true }}
-                className="relative"
-              >
-                {/* Connector Line */}
-                {index < steps.length - 1 && (
-                  <div className="absolute left-6 top-20 h-20 w-px bg-gradient-to-b from-primary to-transparent hidden md:block" />
-                )}
+          <div className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <motion.div
+                  key={step.title}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.2, duration: 0.6 }}
+                  viewport={{ once: true }}
+                  whileHover={{ y: -10, transition: { duration: 0.3 } }}
+                >
+                  <Card className="relative group border-2 border-slate-800 bg-gradient-to-br from-slate-900/50 to-slate-800/50 hover:border-blue-500/50 transition-all duration-300 h-full">
+                    <div
+                      className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${step.gradient} blur-xl`}
+                    />
 
-                <div className="flex flex-col md:flex-row gap-8 mb-16">
-                  {/* Icon & Number */}
-                  <div className="flex-shrink-0">
-                    <div className="relative">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary glow-primary">
-                        <step.icon className="h-6 w-6 text-primary-foreground" />
-                      </div>
-                      <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
-                        {index + 1}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <Card className="flex-1 card-shadow">
-                    <CardContent className="p-6">
-                      <h3 className="text-2xl font-bold mb-3">{step.title}</h3>
-                      <p className="text-muted-foreground mb-4 text-lg">
+                    <CardContent className="relative p-8 text-center">
+                      <motion.div
+                        className={`mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br ${step.gradient} shadow-lg`}
+                        whileHover={{ rotate: 360, scale: 1.1 }}
+                        transition={{ duration: 0.6 }}
+                      >
+                        <step.icon className="h-10 w-10 text-white" />
+                      </motion.div>
+                      <h3 className="mb-3 text-2xl font-bold text-white">
+                        {step.title}
+                      </h3>
+                      <p className="text-slate-300 leading-relaxed">
                         {step.description}
                       </p>
-                      <ul className="space-y-2">
-                        {step.details.map((detail, detailIndex) => (
-                          <li key={detailIndex} className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="h-4 w-4 text-success" />
-                            {detail}
-                          </li>
-                        ))}
-                      </ul>
                     </CardContent>
                   </Card>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-20 bg-muted/20">
+      {/* Features Section */}
+      <section className="py-20 bg-slate-900/30">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="text-3xl font-bold mb-4">
-              Why Choose <span className="gradient-text">AutoPrize Vault</span>?
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                Why AutoPrize?
+              </span>
             </h2>
-            <p className="text-muted-foreground text-lg">
-              Built on Massa blockchain for maximum security, designed for simplicity, governed by the community.
-            </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -173,16 +155,19 @@ const HowItWorks = () => {
                 key={feature.title}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
+                transition={{ delay: index * 0.15, duration: 0.6 }}
                 viewport={{ once: true }}
+                whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
               >
-                <Card className="h-full card-shadow border-border/50 hover:border-primary/30 transition-colors">
-                  <CardContent className="p-6 text-center">
-                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                      <feature.icon className="h-6 w-6 text-primary" />
+                <Card className="border-2 border-slate-800 bg-slate-900/50 hover:border-blue-500/30 transition-all duration-300 h-full">
+                  <CardContent className="p-8 text-center">
+                    <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10">
+                      <feature.icon className="h-8 w-8 text-blue-400" />
                     </div>
-                    <h3 className="mb-3 text-xl font-semibold">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <h3 className="mb-3 text-xl font-bold text-white">
+                      {feature.title}
+                    </h3>
+                    <p className="text-slate-300">{feature.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -192,33 +177,37 @@ const HowItWorks = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 border-t border-border/50">
+      <section className="py-20">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
+            className="max-w-2xl mx-auto"
           >
-            <h2 className="text-3xl font-bold mb-4">Ready to Start Earning Prizes?</h2>
-            <p className="text-muted-foreground mb-8 text-lg max-w-2xl mx-auto">
-              Join the growing community earning decentralized prizes on Massa blockchain. No loss of principal, full transparency, community governance, and weekly prize distributions.
+            <h2 className="text-4xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+                Ready to Start?
+              </span>
+            </h2>
+            <p className="text-slate-300 mb-10 text-lg">
+              Join the vault and start winning prizes today
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="pulse-primary text-lg px-8 py-3" asChild>
-                <Link to="/vault">
-                  Enter Vault
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+
+            <Link to="/vault">
+              <Button
+                size="lg"
+                className="group px-10 py-6 text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:shadow-blue-500/50"
+              >
+                Launch Vault
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-2 transition-transform" />
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-3" asChild>
-                <Link to="/verify">Verify Smart Contract</Link>
-              </Button>
-            </div>
+            </Link>
           </motion.div>
         </div>
       </section>
-    </>
+    </div>
   );
 };
 

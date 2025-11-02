@@ -18,11 +18,23 @@ const VAULT = getVaultAddr();
 interface WithdrawCardProps {
   onWithdraw?: (amount: number) => void;
   userBalanceMas: number;
+  selectedRiskTier?: string;
 }
 
-export function WithdrawCard({ onWithdraw, userBalanceMas }: WithdrawCardProps) {
+export function WithdrawCard({
+  onWithdraw,
+  userBalanceMas,
+  selectedRiskTier = "aggressive",
+}: WithdrawCardProps) {
   const [amount, setAmount] = useState("");
-  const { connected, connect, getContract, refreshBalance, requireNetwork, balance } = useWallet();
+  const {
+    connected,
+    connect,
+    getContract,
+    refreshBalance,
+    requireNetwork,
+    balance,
+  } = useWallet();
   const refetch = useVaultStore((s) => s.refetch);
   const [pending, setPending] = useState(false);
 
@@ -38,14 +50,19 @@ export function WithdrawCard({ onWithdraw, userBalanceMas }: WithdrawCardProps) 
       // Check wallet has enough MAS to pay transaction fees (0.01 MAS minimum)
       const feeRequired = 0.01; // Transaction fee in MAS
       if (walletBalanceMas < feeRequired) {
-        throw new Error(`Insufficient wallet balance for transaction fee. Need at least ${feeRequired} MAS in wallet, but have ${walletBalanceMas.toFixed(4)} MAS.`);
+        throw new Error(
+          `Insufficient wallet balance for transaction fee. Need at least ${feeRequired} MAS in wallet, but have ${walletBalanceMas.toFixed(
+            4
+          )} MAS.`
+        );
       }
 
       const sc = getContract(VAULT);
-      
+
+      // Use simple withdraw function (no risk tiers in current contract)
       // Use parseUnits for precise conversion (avoid float precision issues)
       const shares = parseUnits(String(masAmount), 9); // bigint
-      
+
       // Handle BigInt serialization safely
       const args = new Args();
       try {
@@ -58,28 +75,36 @@ export function WithdrawCard({ onWithdraw, userBalanceMas }: WithdrawCardProps) 
         }
         args.addU64(BigInt(Number(shares)));
       }
-      
+
       const op = await sc.call("withdraw", args, {
         fee: Mas.fromString("0.01"),
         maxGas: GAS_SAFE_CALL,
       });
       await assertFinalSuccess(op, "withdraw");
-      
+
       // Parse events and apply optimistic updates
       const evts = await (op.getFinalEvents?.() ?? []);
       console.debug("[UI] Withdraw events:", evts);
       useVaultStore.getState().mutateAfterEvent(evts);
-      
+
       // Refresh wallet balance
       await refreshBalance();
-      
+
+      // Force refetch vault stats to update TVL (bypass grace period)
+      setTimeout(async () => {
+        console.log("[WithdrawCard] Forcing TVL update after withdrawal...");
+        await refetch(undefined, true); // Pass forceUpdate=true to bypass grace period
+      }, 3000); // 3 second delay ensures blockchain is updated
+
       // Prevent immediate refetch from overriding optimistic update
       // Mark this transaction as recent to prevent blockchain override
       const store = useVaultStore.getState();
       (store as any).lastWithdrawTime = Date.now();
-      
-      console.debug("[UI] Withdraw complete with optimistic update protection.");
-      
+
+      console.debug(
+        "[UI] Withdraw complete with optimistic update protection."
+      );
+
       toast({
         title: "Withdrawal Confirmed",
         description: `Successfully withdrew ${masAmount} MAS`,
@@ -111,7 +136,9 @@ export function WithdrawCard({ onWithdraw, userBalanceMas }: WithdrawCardProps) 
         {!connected && (
           <div className="text-center py-8">
             <Wallet className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Connect your wallet to withdraw</p>
+            <p className="text-muted-foreground">
+              Connect your wallet to withdraw
+            </p>
           </div>
         )}
 
@@ -119,110 +146,126 @@ export function WithdrawCard({ onWithdraw, userBalanceMas }: WithdrawCardProps) 
           <div className="text-center py-8">
             <ArrowLeft className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No shares to withdraw</p>
-            <p className="text-xs text-muted-foreground mt-2">Make a deposit first to earn shares</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Make a deposit first to earn shares
+            </p>
           </div>
         )}
 
         {connected && userBalanceMas > 0 && (
           <>
             <div className="space-y-2">
-            <Label htmlFor="withdraw-amount">Amount to Withdraw (MAS)</Label>
-            <div className="flex gap-2">
-              <Input
-                id="withdraw-amount"
-                type="number"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                step="0.01"
-                min="0.01"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setAmount(userBalanceMas.toString())}
-                className="h-8 px-2"
-              >
-                Max
-              </Button>
+              <Label htmlFor="withdraw-amount">Amount to Withdraw (MAS)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="withdraw-amount"
+                  type="number"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  step="0.01"
+                  min="0.01"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setAmount(userBalanceMas.toString())}
+                  className="h-8 px-2"
+                >
+                  Max
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Available: {userBalanceMas.toFixed(4)} MAS
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Available: {userBalanceMas.toFixed(4)} MAS
-            </p>
-          </div>
 
-          {amount && parseFloat(amount) > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="space-y-3 rounded-lg bg-secondary/5 p-4"
-            >
-              <div className="text-sm space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Withdraw Amount:</span>
-                  <span className="font-medium">{amount} MAS</span>
+            {amount && parseFloat(amount) > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="space-y-3 rounded-lg bg-secondary/5 p-4"
+              >
+                <div className="text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Withdraw Amount:
+                    </span>
+                    <span className="font-medium">{amount} MAS</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Transaction Fee:
+                    </span>
+                    <span className="font-medium">~0.01 MAS</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Current Wallet:
+                    </span>
+                    <span className="font-medium">
+                      {walletBalanceMas.toFixed(4)} MAS
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/40 pt-2">
+                    <span className="text-muted-foreground">
+                      Remaining Vault:
+                    </span>
+                    <span className="font-medium">
+                      {(userBalanceMas - parseFloat(amount || "0")).toFixed(4)}{" "}
+                      MAS
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Transaction Fee:</span>
-                  <span className="font-medium">~0.01 MAS</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Current Wallet:</span>
-                  <span className="font-medium">{walletBalanceMas.toFixed(4)} MAS</span>
-                </div>
-                <div className="flex justify-between border-t border-border/40 pt-2">
-                  <span className="text-muted-foreground">Remaining Vault:</span>
-                  <span className="font-medium">{(userBalanceMas - parseFloat(amount || "0")).toFixed(4)} MAS</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {connected && walletBalanceMas < 0.01 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-3 bg-orange-50 border border-orange-200 rounded-lg"
-            >
-              <div className="flex items-center gap-2 text-sm text-orange-700">
-                <Wallet className="h-4 w-4" />
-                <span>
-                  <strong>Low Wallet Balance:</strong> Need at least 0.01 MAS in wallet for transaction fees.
-                  Current wallet: {walletBalanceMas.toFixed(4)} MAS
-                </span>
-              </div>
-            </motion.div>
-          )}
-
-          <Button
-            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-            onClick={() => handleWithdrawMas(parseFloat(amount))}
-            disabled={
-              !connected || 
-              !amount || 
-              parseFloat(amount) <= 0 || 
-              parseFloat(amount) > userBalanceMas ||
-              walletBalanceMas < 0.01 || // Need at least 0.01 MAS for transaction fee
-              pending
-            }
-          >
-            {pending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : !connected ? (
-              "Connect Wallet"
-            ) : walletBalanceMas < 0.01 ? (
-              "Insufficient Wallet Balance for Fees"
-            ) : !amount || parseFloat(amount) <= 0 ? (
-              "Enter Withdrawal Amount"
-            ) : parseFloat(amount) > userBalanceMas ? (
-              "Exceeds Vault Balance"
-            ) : (
-              "Withdraw from Pool"
+              </motion.div>
             )}
-          </Button>
+
+            {connected && walletBalanceMas < 0.01 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-3 bg-orange-50 border border-orange-200 rounded-lg"
+              >
+                <div className="flex items-center gap-2 text-sm text-orange-700">
+                  <Wallet className="h-4 w-4" />
+                  <span>
+                    <strong>Low Wallet Balance:</strong> Need at least 0.01 MAS
+                    in wallet for transaction fees. Current wallet:{" "}
+                    {walletBalanceMas.toFixed(4)} MAS
+                  </span>
+                </div>
+              </motion.div>
+            )}
+
+            <Button
+              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+              onClick={() => handleWithdrawMas(parseFloat(amount))}
+              disabled={
+                !connected ||
+                !amount ||
+                parseFloat(amount) <= 0 ||
+                parseFloat(amount) > userBalanceMas ||
+                walletBalanceMas < 0.01 || // Need at least 0.01 MAS for transaction fee
+                pending
+              }
+            >
+              {pending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : !connected ? (
+                "Connect Wallet"
+              ) : walletBalanceMas < 0.01 ? (
+                "Insufficient Wallet Balance for Fees"
+              ) : !amount || parseFloat(amount) <= 0 ? (
+                "Enter Withdrawal Amount"
+              ) : parseFloat(amount) > userBalanceMas ? (
+                "Exceeds Vault Balance"
+              ) : (
+                "Withdraw from Pool"
+              )}
+            </Button>
 
             <p className="text-xs text-muted-foreground text-center">
               Instant withdrawals available anytime. No fees, no penalties.

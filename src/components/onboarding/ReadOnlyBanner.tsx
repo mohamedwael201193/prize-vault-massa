@@ -1,13 +1,13 @@
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { useWallet } from '@/hooks/useWallet';
-import { Eye, Info, Wallet } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { useWallet } from "@/hooks/useWallet";
+import { Eye, Info, Wallet } from "lucide-react";
 
 interface ReadOnlyBannerProps {
   className?: string;
 }
 
-export function ReadOnlyBanner({ className = '' }: ReadOnlyBannerProps) {
+export function ReadOnlyBanner({ className = "" }: ReadOnlyBannerProps) {
   const { connected, connect } = useWallet();
 
   // Don't show if wallet is connected
@@ -23,23 +23,23 @@ export function ReadOnlyBanner({ className = '' }: ReadOnlyBannerProps) {
           <div>
             <p className="font-medium text-blue-900">Read-Only Mode</p>
             <p className="text-sm text-blue-700">
-              You're viewing AutoPrize Vault data without a connected wallet. 
-              Connect to deposit, withdraw, and participate in governance.
+              You're viewing AutoPrize Vault data without a connected wallet.
+              Connect to deposit, withdraw, and participate in draws.
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={connect}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Wallet size={14} className="mr-1" />
               Connect Wallet
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="ghost"
-              onClick={() => window.open('/how-it-works', '_blank')}
+              onClick={() => window.open("/how-it-works", "_blank")}
               className="text-blue-700 hover:bg-blue-100"
             >
               <Info size={14} className="mr-1" />
